@@ -89,8 +89,8 @@ export default function GroupManager() {
     setError("");
 
     try {
-      const newGroup = await createGroup(groupName.trim());
-      setGroup(newGroup);
+      await createGroup(groupName.trim());
+      await loadGroup(); // Reload to get full group data with members
       setIsCreateModalOpen(false);
       setGroupName("");
     } catch (err) {

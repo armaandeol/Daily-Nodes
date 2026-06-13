@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import NodeFeed from "./NodeFeed";
 import GroupManager from "./GroupManager";
-import { fetchUserProfile } from "./actions";
+import { fetchUserProfile, fetchUserGroup } from "./actions";
 
 export default async function HomePage() {
   const { userId } = await auth();
@@ -22,6 +22,14 @@ export default async function HomePage() {
     avatarUrl = user.imageUrl || "";
   }
   const initials = (user?.firstName?.[0] || "U").toUpperCase();
+
+  // Fetch user's group data to determine if Shared toggle should be enabled
+  let groupData = null;
+  try {
+    groupData = await fetchUserGroup();
+  } catch (e) {
+    console.error("Failed to fetch group in homepage:", e);
+  }
 
   return (
     <main className="min-h-screen max-w-[680px] mx-auto px-6 flex flex-col">
@@ -53,7 +61,7 @@ export default async function HomePage() {
         </div>
 
         <GroupManager />
-        <NodeFeed />
+        <NodeFeed groupData={groupData} />
       </section>
     </main>
   );

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { format, addDays, subDays } from "date-fns";
-import { fetchNodes, createNode, reactToNode } from "./actions";
+import { fetchNodes, createNode, reactToNode, fetchUserGroup } from "./actions";
 import { useAuth } from "@clerk/nextjs";
 
 type NodeData = {
@@ -27,6 +27,12 @@ type NodeData = {
 
 type ReactionType = "heart" | "thumbs_up" | "thumbs_down" | "fire";
 
+type GroupData = {
+  id: string;
+  name: string;
+  members?: any[];
+} | null;
+
 const REACTION_EMOJIS: Record<ReactionType, string> = {
   heart: "❤️",
   thumbs_up: "👍",
@@ -50,17 +56,60 @@ const CATEGORY_STYLES: Record<string, { label: string; icon: string; bg: string;
   social: { label: "Social", icon: "👥", bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200/50" },
 };
 
-export default function HomeFeed() {
+export default function HomeFeed({ groupData: initialGroupData }: { groupData: GroupData }) {
   const { userId } = useAuth();
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [nodes, setNodes] = useState<NodeData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [groupData, setGroupData] = useState<GroupData>(initialGroupData);
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [selectedType, setSelectedType] = useState("custom");
   const [selectedVisibility, setSelectedVisibility] = useState<"solo" | "shared">("solo");
+  const [imageSelected, setImageSelected] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+
+  // Determine if shared toggle should be disabled
+  const memberCount = groupData?.members?.length || 0;
+  const isSharedDisabled = !groupData || memberCount <= 1;
+  
+  // Tooltip message for disabled shared toggle
+  const getSharedTooltip = () => {
+    if (!groupData) {
+      return "Create or join a group to share nodes";
+    }
+    if (memberCount <= 1) {
+      return "Invite members to your group to share nodes";
+    }
+    return "";
+  };
+
+  // Fetch group data on mount and when modal opens
+  useEffect(() => {
+    async function loadGroupData() {
+      try {
+        const data = await fetchUserGroup();
+        setGroupData(data);
+      } catch (err) {
+        console.error("Failed to fetch group data:", err);
+      }
+    }
+    
+    // Load group data when modal opens (to catch recent group creation/join)
+    if (isModalOpen) {
+      loadGroupData();
+    }
+  }, [isModalOpen]);
+
+  const closeModalAndReset = () => {
+    setIsModalOpen(false);
+    setSelectedType("custom");
+    setSelectedVisibility("solo");
+    setImageSelected(false);
+    setShowHelp(false);
+  };
 
   // Reaction interaction states
   const [nudgingReaction, setNudgingReaction] = useState<{ nodeId: string; type: ReactionType } | null>(null);
@@ -139,9 +188,7 @@ export default function HomeFeed() {
 
     try {
       await createNode(formData);
-      setIsModalOpen(false);
-      setSelectedType("custom"); // Reset selected type
-      setSelectedVisibility("solo"); // Reset visibility
+      closeModalAndReset();
       
       // Reload current date nodes and update cache
       const dateStr = format(currentDate, "yyyy-MM-dd");
@@ -519,14 +566,93 @@ export default function HomeFeed() {
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" onClick={() => { setIsModalOpen(false); setSelectedType("custom"); }}>
-          <div className="bg-white p-6 rounded-lg w-[90%] max-w-[400px]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" onClick={closeModalAndReset}>
+          <div className="bg-white p-6 rounded-lg w-[90%] max-w-[420px] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <form onSubmit={handleNodeSubmit} className="flex flex-col gap-4">
-              <h3 className="m-0 text-lg font-medium text-neutral-900">Create Node</h3>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="m-0 text-lg font-medium text-neutral-900">Create Node</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowHelp(!showHelp)}
+                    className={`w-5 h-5 rounded-full border flex items-center justify-center text-[11px] font-bold transition-all duration-200 cursor-pointer select-none ${
+                      showHelp 
+                        ? "bg-neutral-900 border-neutral-900 text-white shadow-sm scale-105" 
+                        : "bg-neutral-50 border-neutral-200 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 hover:scale-105 active:scale-95"
+                    }`}
+                    title="How it works"
+                  >
+                    ?
+                  </button>
+                </div>
+              </div>
+
+              {showHelp && (
+                <div className="bg-neutral-50 border border-neutral-200/80 rounded-xl p-4 flex flex-col gap-3 text-left animate-[nudge_0.25s_ease-out]">
+                  <div className="flex justify-between items-center pb-1.5 border-b border-neutral-200/50">
+                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Node Types & Rules</span>
+                    <button 
+                      type="button" 
+                      onClick={() => setShowHelp(false)} 
+                      className="text-[10px] text-neutral-400 hover:text-neutral-600 font-medium cursor-pointer"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+                  
+                  {/* Grid of types */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: "Custom ✦", desc: "General logs, notes, or ideas." },
+                      { label: "Workout ⚡", desc: "Exercises and fitness metrics." },
+                      { label: "Food 🍏", desc: "Meals and nutrition tracking." },
+                      { label: "Mood ✿", desc: "Mindfulness and reflections." },
+                      { label: "Study 📖", desc: "Lectures, learning, and reads." },
+                      { label: "Social 👥", desc: "Meetings, hangouts, and events." }
+                    ].map(type => (
+                      <div key={type.label} className="flex flex-col gap-0.5 bg-white p-2 rounded-lg border border-neutral-200/40">
+                        <span className="text-xs font-semibold text-neutral-700">{type.label}</span>
+                        <span className="text-[10px] text-neutral-400 leading-tight font-light">{type.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Rules summary */}
+                  <div className="flex flex-col gap-1.5 pt-2 text-[10px] text-neutral-500 leading-normal border-t border-neutral-200/50">
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-amber-500 flex-shrink-0">📝</span>
+                      <span><strong>Text Nodes:</strong> Title is required.</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-amber-500 flex-shrink-0">📸</span>
+                      <span><strong>Image Nodes:</strong> Title is disabled. Any captions or text descriptions should go in the description field.</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-neutral-600">Title</label>
-                <input className="p-2 border border-neutral-300 rounded-md focus:outline-none focus:border-neutral-500" name="title" type="text" placeholder="Title (optional)" />
+                <div className="flex justify-between items-center">
+                  <label className="text-sm text-neutral-600 font-medium">Title</label>
+                  {!imageSelected && <span className="text-[10px] text-neutral-400 font-medium tracking-wider uppercase">Required</span>}
+                </div>
+                <input
+                  className={`p-2 border rounded-md focus:outline-none focus:border-neutral-500 transition-all ${
+                    imageSelected 
+                      ? "bg-neutral-50 border-neutral-200 text-neutral-400 cursor-not-allowed" 
+                      : "border-neutral-300"
+                  }`}
+                  name="title"
+                  type="text"
+                  placeholder={imageSelected ? "Not allowed with image" : "Enter title"}
+                  disabled={imageSelected}
+                  required={!imageSelected}
+                />
+                {imageSelected && (
+                  <p className="text-[11px] text-amber-600 font-light mt-0.5">
+                    Images overlay titles on the feed. Write your text in description instead.
+                  </p>
+                )}
               </div>
 
               {/* Gorgeous Pill Category Selector */}
@@ -574,18 +700,30 @@ export default function HomeFeed() {
                     <span>🔒</span>
                     <span>Solo</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedVisibility("shared")}
-                    className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 ${
-                      selectedVisibility === "shared"
-                        ? "bg-neutral-900 border-neutral-900 text-white shadow-sm"
-                        : "bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50"
-                    }`}
-                  >
-                    <span>👥</span>
-                    <span>Shared</span>
-                  </button>
+                  <div className="relative flex-1 group/shared">
+                    <button
+                      type="button"
+                      onClick={() => !isSharedDisabled && setSelectedVisibility("shared")}
+                      disabled={isSharedDisabled}
+                      className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium border transition-all duration-200 flex items-center justify-center gap-2 ${
+                        isSharedDisabled
+                          ? "bg-neutral-100 border-neutral-200 text-neutral-400 cursor-not-allowed opacity-60"
+                          : selectedVisibility === "shared"
+                          ? "bg-neutral-900 border-neutral-900 text-white shadow-sm cursor-pointer"
+                          : "bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 cursor-pointer"
+                      }`}
+                      title={isSharedDisabled ? getSharedTooltip() : ""}
+                    >
+                      <span>👥</span>
+                      <span>Shared</span>
+                    </button>
+                    {isSharedDisabled && (
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-neutral-950/95 text-white text-xs font-medium rounded-lg shadow-lg whitespace-normal max-w-[200px] text-center pointer-events-none opacity-0 group-hover/shared:opacity-100 transition-opacity duration-200 z-50">
+                        {getSharedTooltip()}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-neutral-950"></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <p className="text-xs text-neutral-500 mt-0.5">
                   {selectedVisibility === "solo" 
@@ -595,17 +733,26 @@ export default function HomeFeed() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-neutral-600">Image</label>
-                <input className="p-2 border border-neutral-300 rounded-md file:bg-neutral-100 file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:cursor-pointer hover:file:bg-neutral-200" name="image" type="file" accept="image/*" />
+                <label className="text-sm text-neutral-600 font-medium">Image</label>
+                <input
+                  className="p-2 border border-neutral-300 rounded-md file:bg-neutral-100 file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 file:cursor-pointer hover:file:bg-neutral-200"
+                  name="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    setImageSelected(!!file);
+                  }}
+                />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-neutral-600">Description</label>
+                <label className="text-sm text-neutral-600 font-medium">Description</label>
                 <textarea className="p-2 border border-neutral-300 rounded-md min-h-[80px] resize-y focus:outline-none focus:border-neutral-500" name="content" placeholder="Description (optional)"></textarea>
               </div>
               
               <div className="flex justify-end gap-2 mt-4">
-                <button type="button" className="px-4 py-2 bg-transparent text-neutral-700 hover:bg-neutral-100 rounded-md transition-colors" onClick={() => { setIsModalOpen(false); setSelectedType("custom"); setSelectedVisibility("solo"); }}>Cancel</button>
+                <button type="button" className="px-4 py-2 bg-transparent text-neutral-700 hover:bg-neutral-100 rounded-md transition-colors" onClick={closeModalAndReset}>Cancel</button>
                 <button type="submit" className="px-4 py-2 bg-neutral-900 text-white rounded-md hover:bg-neutral-800 transition-colors disabled:opacity-70 disabled:cursor-not-allowed" disabled={formSubmitting}>
                   {formSubmitting ? "Saving..." : "Save"}
                 </button>
