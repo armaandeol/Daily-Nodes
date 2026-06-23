@@ -36,10 +36,14 @@ export default async function HomePage() {
       {/* Header */}
       <header className="flex items-center justify-between pt-7 pb-5 border-b border-neutral-200">
         <span className="text-sm font-semibold tracking-wide text-neutral-900">daily nodes</span>
-        <Link
-          href="/profile"
-          className="w-8 h-8 rounded-full overflow-hidden bg-neutral-200 border border-neutral-200 hover:border-neutral-400 transition-all flex items-center justify-center cursor-pointer shadow-sm"
-        >
+        <div className="flex items-center gap-4">
+          <Link href="/explore" className="text-xs text-neutral-400 hover:text-neutral-700 transition-colors tracking-wide">
+            explore
+          </Link>
+          <Link
+            href="/profile"
+            className="w-8 h-8 rounded-full overflow-hidden bg-neutral-200 border border-neutral-200 hover:border-neutral-400 transition-all flex items-center justify-center cursor-pointer shadow-sm"
+          >
           {avatarUrl ? (
             <img
               src={avatarUrl}
@@ -49,7 +53,8 @@ export default async function HomePage() {
           ) : (
             <div className="text-xs font-semibold text-neutral-600">{initials}</div>
           )}
-        </Link>
+          </Link>
+        </div>
       </header>
 
       {/* Main content */}
