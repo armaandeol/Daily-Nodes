@@ -65,7 +65,7 @@ export default async function HomePage() {
           <p className="text-sm text-neutral-500 mt-1">your space is ready. start logging.</p>
         </div>
 
-        <GroupManager />
+        <GroupManager initialGroup={groupData} />
         <NodeFeed groupData={groupData} />
       </section>
     </main>

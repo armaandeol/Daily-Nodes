@@ -24,9 +24,9 @@ type Member = {
 
 type ActiveTab = "overview" | "members" | "settings";
 
-export default function GroupManager() {
-  const [group, setGroup] = useState<GroupData | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function GroupManager({ initialGroup }: { initialGroup?: any }) {
+  const [group, setGroup] = useState<GroupData | null>(initialGroup || null);
+  const [loading, setLoading] = useState(initialGroup === undefined);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -39,16 +39,31 @@ export default function GroupManager() {
   // Edit states
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingBio, setIsEditingBio] = useState(false);
-  const [editedName, setEditedName] = useState("");
-  const [editedBio, setEditedBio] = useState("");
+  const [editedName, setEditedName] = useState(initialGroup?.name || "");
+  const [editedBio, setEditedBio] = useState(initialGroup?.bio || "");
 
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<Member[]>(() => {
+    if (initialGroup?.members) {
+      return initialGroup.members.map((m: any) => ({
+        id: m.clerk_user_id,
+        name: m.profiles?.display_name || "Unknown User",
+        email: m.profiles?.username ? `@${m.profiles.username}` : "",
+        joined_at: m.joined_at,
+        role: m.role === "owner" ? "admin" : "member"
+      }));
+    }
+    return [];
+  });
 
   const { userId: currentUserId } = useAuth();
 
   useEffect(() => {
-    loadGroup();
-  }, []);
+    if (initialGroup === undefined) {
+      loadGroup();
+    } else {
+      console.log("GroupManager initialized with initialGroup", initialGroup);
+    }
+  }, [initialGroup]);
 
   async function loadGroup() {
     try {

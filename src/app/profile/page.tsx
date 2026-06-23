@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   fetchUserProfile,
@@ -180,12 +181,12 @@ export default function ProfilePage() {
     <main className="min-h-screen max-w-[680px] mx-auto px-6 flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-between pt-7 pb-5 border-b border-neutral-200">
-        <button
-          onClick={() => router.push("/home")}
+        <Link
+          href="/home"
           className="text-sm font-semibold tracking-wide text-neutral-900 hover:text-neutral-600 transition-colors"
         >
           ← back
-        </button>
+        </Link>
         <span className="text-sm font-semibold tracking-wide text-neutral-900">profile</span>
         <div className="w-16" /> {/* Spacer for centering */}
       </header>
