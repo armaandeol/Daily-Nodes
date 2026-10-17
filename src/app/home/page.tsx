@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import NodeFeed from "./NodeFeed";
 import GroupManager from "./GroupManager";
+import HomeGreeting from "./HomeGreeting";
 import { fetchUserProfile, fetchUserGroup } from "./actions";
 
 export default async function HomePage() {
@@ -22,8 +23,8 @@ export default async function HomePage() {
     avatarUrl = user.imageUrl || "";
   }
   const initials = (user?.firstName?.[0] || "U").toUpperCase();
+  const firstName = (user?.firstName || "").toLowerCase();
 
-  // Fetch user's group data to determine if Shared toggle should be enabled
   let groupData = null;
   try {
     groupData = await fetchUserGroup();
@@ -32,43 +33,41 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="min-h-screen max-w-[680px] mx-auto px-6 flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between pt-7 pb-5 border-b border-neutral-200">
-        <span className="text-sm font-semibold tracking-wide text-neutral-900">daily nodes</span>
-        <div className="flex items-center gap-4">
-          <Link href="/explore" className="text-xs text-neutral-400 hover:text-neutral-700 transition-colors tracking-wide">
-            explore
-          </Link>
-          <Link
-            href="/profile"
-            className="w-8 h-8 rounded-full overflow-hidden bg-neutral-200 border border-neutral-200 hover:border-neutral-400 transition-all flex items-center justify-center cursor-pointer shadow-sm"
-          >
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="text-xs font-semibold text-neutral-600">{initials}</div>
-          )}
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen paper-grain text-pencil selection:bg-marker selection:text-card">
+      <main className="mx-auto flex min-h-screen max-w-[760px] flex-col px-5">
+        {/* Masthead */}
+        <header className="mt-6 border-y-4 border-double border-pencil py-4">
+          <div className="flex items-center justify-between gap-4">
+            <Link href="/explore" className="font-note text-lg text-pencil/70 transition-colors hover:text-marker">
+              explore ↗
+            </Link>
+            <span className="font-serif text-2xl font-black tracking-tight sm:text-3xl">
+              DAILY NODES<span className="text-marker">.</span>
+            </span>
+            <Link
+              href="/profile"
+              aria-label="Profile"
+              className="flex h-10 w-10 items-center justify-center overflow-hidden border-2 border-pencil bg-erased shadow-hard-sm transition-transform hover:-rotate-6 wobbly"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                <span className="font-hand text-sm font-bold">{initials}</span>
+              )}
+            </Link>
+          </div>
+        </header>
 
-      {/* Main content */}
-      <section className="flex-1 flex flex-col pt-12 pb-8 gap-8">
-        <div className="flex flex-col gap-1">
-          <p className="text-xs tracking-widest uppercase text-neutral-400">today</p>
-          <h1 className="text-3xl font-light tracking-tight text-neutral-900">good morning.</h1>
-          <p className="text-sm text-neutral-500 mt-1">your space is ready. start logging.</p>
-        </div>
+        <section className="flex flex-1 flex-col gap-8 pb-16 pt-10">
+          <HomeGreeting firstName={firstName} />
+          <GroupManager initialGroup={groupData} />
+          <NodeFeed groupData={groupData} />
+        </section>
 
-        <GroupManager initialGroup={groupData} />
-        <NodeFeed groupData={groupData} />
-      </section>
-    </main>
+        <footer className="border-t-2 border-dashed border-pencil/30 py-5 text-center font-mono text-[10px] uppercase tracking-[0.25em] text-pencil/50">
+          daily nodes · one page a day
+        </footer>
+      </main>
+    </div>
   );
 }
-
