@@ -36,7 +36,7 @@ export type Digest = {
   circle_photo: DigestPhoto | null;
 };
 
-export async function fetchLatestDigest(): Promise<Digest | null> {
+export async function fetchDigestEditions(): Promise<Digest[]> {
   const { getToken } = await auth();
   const token = await getToken();
 
@@ -44,7 +44,7 @@ export async function fetchLatestDigest(): Promise<Digest | null> {
 
   const url = new URL(`${API_URL}/api/v1/digests/my`);
   url.searchParams.set("period", "daily");
-  url.searchParams.set("limit", "1");
+  url.searchParams.set("limit", "100");
 
   const res = await fetch(url.toString(), {
     headers: {
@@ -60,5 +60,10 @@ export async function fetchLatestDigest(): Promise<Digest | null> {
 
   const data = await res.json();
   const digests: Digest[] = data.digests || [];
+  return digests;
+}
+
+export async function fetchLatestDigest(): Promise<Digest | null> {
+  const digests = await fetchDigestEditions();
   return digests.find((d) => d.status === "generated") ?? null;
 }

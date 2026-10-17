@@ -126,7 +126,8 @@ export function WobblyButton({ variant = "paper", size = "md", className, childr
       whileTap={reduce ? undefined : { x: 4, y: 4, boxShadow: "0px 0px 0 0 var(--pencil)" }}
       transition={{ type: "spring", stiffness: 500, damping: 25 }}
       className={cn(
-        "relative inline-flex select-none items-center justify-center gap-2 border-pencil font-note shadow-hard wobbly transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+        "relative inline-flex select-none items-center justify-center gap-2 border-pencil font-note shadow-hard transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+        className?.includes("rounded-full") ? "rounded-full" : "wobbly",
         variants[variant],
         sizes[size],
         className,

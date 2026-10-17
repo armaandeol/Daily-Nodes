@@ -1,6 +1,11 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { fetchLatestDigest, type DigestPhoto } from "./actions";
+import Link from "next/link";
+import { fetchDigestEditions, type DigestPhoto } from "./actions";
+import { fetchUserProfile } from "../home/actions";
+import { editionHistory } from "./edition-history";
+
+export const metadata = { title: "Roz — Your editions", description: "Read your daily Roz digest and revisit earlier editions.", openGraph: { title: "Roz — Your editions", description: "Read your daily Roz digest and revisit earlier editions.", type: "website" }, twitter: { card: "summary" } };
 
 const SECTION_TITLES = {
   morning: { lead: "Yesterday's Roz", circle: "The Circle", pivot: "The Pivot" },
@@ -45,23 +50,38 @@ function StatBox({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-export default async function ExplorePage() {
+export default async function ExplorePage({ searchParams }: { searchParams: Promise<{ edition?: string }> }) {
   const { userId } = await auth();
 
   if (!userId) {
     redirect("/");
   }
 
-  const digest = await fetchLatestDigest();
+  const [{ edition: selectedEdition }, digests, user, profile] = await Promise.all([searchParams, fetchDigestEditions(), currentUser(), fetchUserProfile().catch(() => null)]);
+  const { digest, older, newer } = editionHistory(digests, selectedEdition);
+  const avatarUrl = profile?.avatar_signed_url || profile?.avatar_url || user?.imageUrl;
+  const navigation = <nav aria-label="Edition navigation" className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 border-b-2 border-pencil px-6 py-4 font-note text-lg">
+    <Link href="/home" className="text-ink">← home</Link>
+    <div className="flex flex-wrap items-center justify-center gap-4">
+      {older ? <Link href={{ pathname: "/explore", query: { edition: older.id } }} aria-label="Older edition" className="text-ink">← older</Link> : <span aria-disabled="true" className="text-pencil/30">← older</span>}
+      <Link href="/explore" className="text-pencil">latest</Link>
+      {newer ? <Link href={{ pathname: "/explore", query: { edition: newer.id } }} aria-label="Newer edition" className="text-ink">newer →</Link> : <span aria-disabled="true" className="text-pencil/30">newer →</span>}
+    </div>
+    <Link href="/profile" aria-label="Profile" className="flex h-10 w-10 items-center justify-center overflow-hidden border-2 border-pencil bg-erased shadow-hard-sm wobbly">
+      {avatarUrl ? <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" /> : <span className="font-hand">{user?.firstName?.[0] || "U"}</span>}
+    </Link>
+  </nav>;
 
   if (!digest) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-[#faf8f5] px-6 text-center text-neutral-900">
-        <span className="font-serif text-3xl font-black tracking-tight">ROZ DAILY</span>
+      <main className="min-h-screen bg-paper text-pencil">
+        {navigation}
+        <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+        <span className="font-serif text-3xl font-black">Roz</span>
         <p className="mt-4 max-w-sm font-mono text-sm text-neutral-500">
-          No edition today yet. Log a few things and check back — the front page writes itself
-          once there's a day to report on.
+          {selectedEdition ? "This edition isn't available. Return to the latest edition." : "No edition yet. Log a few things and check back."}
         </p>
+        </div>
       </main>
     );
   }
@@ -71,12 +91,13 @@ export default async function ExplorePage() {
   const edition = slot === "morning" ? "Morning Edition" : "Evening Edition";
 
   return (
-    <main className="min-h-screen bg-[#faf8f5] text-neutral-900 selection:bg-red-600 selection:text-white">
+    <main className="min-h-screen bg-paper text-pencil selection:bg-marker selection:text-card">
+      {navigation}
       {/* ── Masthead ─────────────────────────────────── */}
       <header className="border-y-4 border-double border-neutral-900">
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-3 px-6 py-6 text-center">
           <span className="font-serif text-4xl font-black tracking-tight md:text-5xl">
-            ROZ DAILY
+            Roz
           </span>
           <div className="flex flex-wrap items-center justify-center gap-3 font-mono text-xs uppercase tracking-[0.2em] text-neutral-500">
             <span>{edition}</span>
@@ -214,10 +235,7 @@ export default async function ExplorePage() {
 
       {/* ── Footer ───────────────────────────────────── */}
       <footer className="border-t-4 border-double border-neutral-900 py-10 text-center">
-        <span className="font-serif text-3xl font-black tracking-tighter">ROZ</span>
-        <p className="mt-2 font-mono text-xs uppercase tracking-[0.3em] text-neutral-400">
-          Daily, in Punjabi.
-        </p>
+        <span className="font-serif text-3xl font-black">Roz</span>
       </footer>
     </main>
   );

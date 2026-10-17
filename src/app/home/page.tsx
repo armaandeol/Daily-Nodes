@@ -5,6 +5,9 @@ import NodeFeed from "./NodeFeed";
 import GroupManager from "./GroupManager";
 import HomeGreeting from "./HomeGreeting";
 import { fetchUserProfile, fetchUserGroup } from "./actions";
+import { PageMotion } from "@/components/sketch/PageMotion";
+
+export const metadata = { title: "Roz — Your day", description: "Your moments, notes, and photos in Roz.", openGraph: { title: "Roz — Your day", description: "Your moments, notes, and photos in Roz.", type: "website" }, twitter: { card: "summary" } };
 
 export default async function HomePage() {
   const { userId } = await auth();
@@ -42,7 +45,7 @@ export default async function HomePage() {
               explore ↗
             </Link>
             <span className="font-serif text-2xl font-black tracking-tight sm:text-3xl">
-              DAILY NODES<span className="text-marker">.</span>
+              Roz<span className="text-marker">.</span>
             </span>
             <Link
               href="/profile"
@@ -58,14 +61,14 @@ export default async function HomePage() {
           </div>
         </header>
 
-        <section className="flex flex-1 flex-col gap-8 pb-16 pt-10">
+        <PageMotion className="flex flex-1 flex-col gap-8 pb-16 pt-10">
           <HomeGreeting firstName={firstName} />
           <GroupManager initialGroup={groupData} />
           <NodeFeed groupData={groupData} />
-        </section>
+        </PageMotion>
 
         <footer className="border-t-2 border-dashed border-pencil/30 py-5 text-center font-mono text-[10px] uppercase tracking-[0.25em] text-pencil/50">
-          daily nodes · one page a day
+          Roz · one page a day
         </footer>
       </main>
     </div>

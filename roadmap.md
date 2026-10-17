@@ -1,0 +1,4 @@
+- [x] Compact Home add-log and group controls; update Roz branding and composer close control.
+- [x] Add ghost loading layouts and reduced-motion-aware paper transitions.
+- [x] Add Explore edition history, Home navigation, and profile photo.
+- [ ] Verify signed-in Home and Explore flows — blocked by the external Clerk sign-in session.

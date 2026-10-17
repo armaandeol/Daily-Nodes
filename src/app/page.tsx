@@ -10,7 +10,7 @@ export default async function LandingPage() {
     <main className="landing-root">
       {/* Nav */}
       <nav className="landing-nav">
-        <span className="landing-logo">daily nodes</span>
+        <span className="landing-logo">Roz</span>
         <div className="landing-nav-links">
           <Link href="/sign-in" className="nav-link">sign in</Link>
           <Link href="/sign-up" className="nav-cta">get started</Link>
@@ -25,7 +25,7 @@ export default async function LandingPage() {
           share with your circle.
         </h1>
         <p className="hero-sub">
-          Daily Nodes helps you track workouts, meals, moods, and more —
+          Roz helps you track workouts, meals, moods, and more —
           privately or with a small group you trust. Get a warm AI digest of
           your day, every evening.
         </p>
@@ -58,7 +58,7 @@ export default async function LandingPage() {
 
       {/* Footer */}
       <footer className="landing-footer">
-        <span>daily nodes · {new Date().getFullYear()}</span>
+        <span>Roz · {new Date().getFullYear()}</span>
       </footer>
 
       <style>{`
