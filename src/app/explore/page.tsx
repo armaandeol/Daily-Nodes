@@ -50,15 +50,15 @@ function StatBox({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-export default async function ExplorePage({ searchParams }: { searchParams: Promise<{ edition?: string }> }) {
+export default async function ExplorePage({ searchParams }: { searchParams: Promise<{ edition?: string; date?: string }> }) {
   const { userId } = await auth();
 
   if (!userId) {
     redirect("/");
   }
 
-  const [{ edition: selectedEdition }, digests, user, profile] = await Promise.all([searchParams, fetchDigestEditions(), currentUser(), fetchUserProfile().catch(() => null)]);
-  const { digest, older, newer } = editionHistory(digests, selectedEdition);
+  const [{ edition: selectedEdition, date: selectedDate }, digests, user, profile] = await Promise.all([searchParams, fetchDigestEditions(), currentUser(), fetchUserProfile().catch(() => null)]);
+  const { digest, older, newer } = editionHistory(digests, selectedEdition, selectedDate);
   const avatarUrl = profile?.avatar_signed_url || profile?.avatar_url || user?.imageUrl;
   const navigation = <nav aria-label="Edition navigation" className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 border-b-2 border-pencil px-6 py-4 font-note text-lg">
     <Link href="/home" className="text-ink">← home</Link>
@@ -79,7 +79,11 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
         <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
         <span className="font-serif text-3xl font-black">Roz</span>
         <p className="mt-4 max-w-sm font-mono text-sm text-neutral-500">
-          {selectedEdition ? "This edition isn't available. Return to the latest edition." : "No edition yet. Log a few things and check back."}
+          {selectedDate
+            ? "No digest was generated for that day."
+            : selectedEdition
+            ? "This edition isn't available. Return to the latest edition."
+            : "No edition yet. Log a few things and check back."}
         </p>
         </div>
       </main>

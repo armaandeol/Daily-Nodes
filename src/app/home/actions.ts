@@ -29,6 +29,33 @@ export async function fetchNodes(date?: string) {
   return res.json();
 }
 
+export type NodeActivityDay = { date: string; count: number; top_type: string };
+
+export async function fetchNodeActivity(start: string, end: string): Promise<NodeActivityDay[]> {
+  const { getToken } = await auth();
+  const token = await getToken();
+
+  if (!token) throw new Error("Unauthorized");
+
+  const url = new URL(`${API_URL}/nodes/activity`);
+  url.searchParams.set("start", start);
+  url.searchParams.set("end", end);
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  if (!res.ok) {
+    console.error("fetchNodeActivity error:", await res.text());
+    throw new Error("Failed to fetch node activity");
+  }
+
+  const data = await res.json();
+  return data.days || [];
+}
+
 export async function createNode(formData: FormData) {
   const { getToken } = await auth();
   const token = await getToken();

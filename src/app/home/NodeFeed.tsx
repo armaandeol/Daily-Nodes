@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { format, addDays, subDays } from "date-fns";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuth } from "@clerk/nextjs";
@@ -10,6 +11,15 @@ import { GhostFeed } from "@/components/sketch/PageMotion";
 import { PolaroidNode, NoteNode } from "./NodeCards";
 import NodeComposer from "./NodeComposer";
 import { TILTS, type GroupData, type NodeData, type ReactionType } from "./feed-types";
+
+/** Parses a "YYYY-MM-DD" string as a local date, avoiding the UTC-midnight
+ * shift `new Date("YYYY-MM-DD")` would otherwise introduce. */
+function parseLocalDate(dateStr: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (!match) return null;
+  const [, y, m, d] = match;
+  return new Date(Number(y), Number(m) - 1, Number(d));
+}
 
 function DayNavigator({
   date,
@@ -50,7 +60,13 @@ function DayNavigator({
   );
 }
 
-export default function HomeFeed({ groupData: initialGroupData }: { groupData: GroupData }) {
+export default function HomeFeed({
+  groupData: initialGroupData,
+  initialDate,
+}: {
+  groupData: GroupData;
+  initialDate?: string;
+}) {
   const { userId } = useAuth();
   const reduce = useReducedMotion();
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
@@ -61,10 +77,12 @@ export default function HomeFeed({ groupData: initialGroupData }: { groupData: G
   const [isModalOpen, setIsModalOpen] = useState(false);
   const cacheRef = useRef<Record<string, NodeData[]>>({});
 
-  // "Now" is only resolved on the client, after mount, so the SSR pass and the
-  // first client render agree (avoids a hydration mismatch around midnight).
+  // "Now" (or a date passed via ?date=) is only resolved on the client, after
+  // mount, so the SSR pass and the first client render agree (avoids a
+  // hydration mismatch around midnight).
   useEffect(() => {
-    setCurrentDate(new Date());
+    setCurrentDate((initialDate && parseLocalDate(initialDate)) || new Date());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const dateStr = currentDate ? format(currentDate, "yyyy-MM-dd") : null;
@@ -178,6 +196,17 @@ export default function HomeFeed({ groupData: initialGroupData }: { groupData: G
         <span className="font-mono text-[10px] text-marker">{nodes.length.toString().padStart(2, "0")}</span>
         <span className="h-0 flex-1 border-t-2 border-dashed border-pencil/40" />
       </div>
+
+      {!isToday && dateStr && (
+        <div className="-mt-4 flex justify-center">
+          <Link
+            href={`/explore?date=${dateStr}`}
+            className="font-note text-sm text-ink underline-offset-2 hover:underline"
+          >
+            go to this day&apos;s digest →
+          </Link>
+        </div>
+      )}
 
       <AnimatePresence mode="wait" custom={direction}>
         <motion.div

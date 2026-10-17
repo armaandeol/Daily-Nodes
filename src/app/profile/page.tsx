@@ -11,6 +11,7 @@ import {
   checkUsernameAvailability,
   uploadUserAvatar,
 } from "@/app/home/actions";
+import ActivityCalendar from "./ActivityCalendar";
 
 export default function ProfilePage() {
   const { user } = useUser();
@@ -234,8 +235,8 @@ export default function ProfilePage() {
           <p className="text-[11px] text-neutral-400 tracking-wide">JPG, PNG or WEBP. Max 2MB.</p>
         </div>
 
-        {/* Empty Rectangle Placeholder */}
-        <div className="w-full h-48 border-2 border-dashed border-neutral-300 rounded-lg bg-neutral-50" />
+        {/* Activity calendar */}
+        <ActivityCalendar />
 
         {/* Form Fields */}
         <div className="flex flex-col gap-6">

@@ -9,9 +9,15 @@ import { PageMotion } from "@/components/sketch/PageMotion";
 
 export const metadata = { title: "Roz — Your day", description: "Your moments, notes, and photos in Roz.", openGraph: { title: "Roz — Your day", description: "Your moments, notes, and photos in Roz.", type: "website" }, twitter: { card: "summary" } };
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
   const { userId } = await auth();
   if (!userId) redirect("/");
+
+  const { date: initialDate } = await searchParams;
 
   let avatarUrl = "";
   try {
@@ -64,7 +70,7 @@ export default async function HomePage() {
         <PageMotion className="flex flex-1 flex-col gap-8 pb-16 pt-10">
           <HomeGreeting firstName={firstName} />
           <GroupManager initialGroup={groupData} />
-          <NodeFeed groupData={groupData} />
+          <NodeFeed groupData={groupData} initialDate={initialDate} />
         </PageMotion>
 
         <footer className="border-t-2 border-dashed border-pencil/30 py-5 text-center font-mono text-[10px] uppercase tracking-[0.25em] text-pencil/50">
