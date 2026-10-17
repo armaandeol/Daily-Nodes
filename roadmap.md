@@ -1,4 +1,5 @@
 # Photo cropping
-- [ ] Add mandatory polaroid crop with repositioning, zoom, and confirmation.
-- [ ] Save and preview only the cropped photo; retain heading-to-description behavior.
-- [ ] Test crop rules and verify the available photo flow.
+- [x] Add mandatory polaroid crop with repositioning, zoom, and confirmation.
+- [x] Save and preview only the cropped photo; retain heading-to-description behavior.
+- [x] Test crop rules and check app compilation.
+- [ ] Verify signed-in photo selection and saving: blocked by unavailable Clerk session in the test browser.
