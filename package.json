@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build",
+    "build:dev": "tsc --noEmit -p .",
     "start": "next start",
     "lint": "eslint"
   },
