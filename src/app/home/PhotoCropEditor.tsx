@@ -54,7 +54,7 @@ export default function PhotoCropEditor({ file, onConfirm, onCancel }: {
           onZoomChange={setZoom}
           onCropComplete={(_, area) => setPixels(area)}
           onMediaLoaded={() => setError(null)}
-          onImgError={() => setError("This photo couldn't be opened. Choose another image.")}
+          mediaProps={{ onError: () => setError("This photo couldn't be opened. Choose another image.") }}
           zoomWithScroll={false}
           classes={{ cropAreaClassName: "photo-crop-frame" }}
         />}
