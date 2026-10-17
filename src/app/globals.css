@@ -3,8 +3,19 @@
 @theme inline {
   --font-mono: var(--font-mono, "JetBrains Mono", monospace);
   --font-serif: var(--font-serif, "Playfair Display", Georgia, serif);
+  --font-hand: var(--font-hand, "Kalam", cursive);
+  --font-note: var(--font-note, "Patrick Hand", cursive);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-paper: var(--paper);
+  --color-pencil: var(--pencil);
+  --color-erased: var(--erased);
+  --color-marker: var(--marker);
+  --color-ink: var(--ink);
+  --color-postit: var(--postit);
+  --color-card: var(--card);
+
   --animate-nudge: nudge 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
   @keyframes nudge {
@@ -19,6 +30,50 @@
 :root {
   --background: #ffffff;
   --foreground: #0a0a0a;
+
+  /* Sketchbook palette */
+  --paper: #fdfbf7;
+  --pencil: #2d2d2d;
+  --erased: #e5e0d8;
+  --marker: #ff4d4d;
+  --ink: #2d5da1;
+  --postit: #fff9c4;
+  --card: #ffffff;
+
+  /* Wobbly radii */
+  --radius-wobbly: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --radius-wobbly-md: 15px 225px 15px 255px / 255px 15px 225px 15px;
+  --radius-wobbly-sm: 12px 40px 14px 36px / 36px 14px 40px 12px;
+
+  /* Hard offset shadows */
+  --shadow-hard: 4px 4px 0 0 var(--pencil);
+  --shadow-hard-lg: 8px 8px 0 0 var(--pencil);
+  --shadow-hard-sm: 2px 2px 0 0 var(--pencil);
+}
+
+@utility paper-grain {
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--erased) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+@utility wobbly {
+  border-radius: var(--radius-wobbly);
+}
+@utility wobbly-md {
+  border-radius: var(--radius-wobbly-md);
+}
+@utility wobbly-sm {
+  border-radius: var(--radius-wobbly-sm);
+}
+@utility shadow-hard {
+  box-shadow: var(--shadow-hard);
+}
+@utility shadow-hard-lg {
+  box-shadow: var(--shadow-hard-lg);
+}
+@utility shadow-hard-sm {
+  box-shadow: var(--shadow-hard-sm);
 }
 
 @layer base {
