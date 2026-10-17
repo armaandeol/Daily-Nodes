@@ -126,13 +126,14 @@ export default function NodeComposer({
             aria-modal="true"
             aria-label="New log"
             onClick={(e) => e.stopPropagation()}
-            initial={reduce ? { opacity: 0 } : { opacity: 0, y: -60, rotate: -4, scale: 0.95 }}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 40, rotate: -2, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, rotate: -0.5, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: 40, rotate: 3, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 260, damping: 22 }}
-            className="relative my-6 grid w-full max-w-[860px] gap-6 border-[3px] border-pencil p-5 shadow-hard-lg paper-grain wobbly-md md:grid-cols-[1.1fr_1fr] md:p-7"
+            className="relative my-6 grid w-full max-w-[860px] gap-6 border-[3px] border-pencil p-5 pt-14 shadow-hard-lg paper-grain wobbly-md md:grid-cols-[1.1fr_1fr] md:p-7 md:pt-14"
           >
             <Tape className="w-28" />
+            <WobblyButton type="button" onClick={reset} disabled={submitting} aria-label="Close new log" title="Close" className="absolute right-3 top-3 h-9 w-9 border-0 bg-transparent p-0 text-3xl text-marker shadow-none hover:bg-transparent hover:text-marker">×</WobblyButton>
             <form onSubmit={submit} className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-serif text-3xl font-black text-pencil">
@@ -268,9 +269,6 @@ export default function NodeComposer({
               {error && <p className="font-note text-base text-marker">{error}</p>}
 
               <div className="mt-1 flex items-center justify-end gap-3">
-                <button type="button" onClick={reset} className="font-note text-lg text-pencil/70 hover:text-pencil">
-                  cancel
-                </button>
                 <WobblyButton type="submit" variant="marker" size="lg" disabled={submitting}>
                   {submitting ? "pinning…" : "pin it →"}
                 </WobblyButton>

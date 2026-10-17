@@ -28,7 +28,7 @@ const patrickHand = Patrick_Hand({
 });
 
 export const metadata: Metadata = {
-  title: "Daily Nodes — Log your day, share your world",
+  title: "Roz — Log your day, share your world",
   description:
     "A minimal life-logging app for tracking what matters — workouts, food, moods, and more. Share moments with your close circle and get AI-powered daily digests.",
 };

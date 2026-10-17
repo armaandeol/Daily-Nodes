@@ -5,7 +5,8 @@ import { format, addDays, subDays } from "date-fns";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuth } from "@clerk/nextjs";
 import { fetchNodes, reactToNode, fetchUserGroup } from "./actions";
-import { ScribbleArrow, WobblyButton } from "@/components/sketch";
+import { WobblyButton } from "@/components/sketch";
+import { GhostFeed } from "@/components/sketch/PageMotion";
 import { PolaroidNode, NoteNode } from "./NodeCards";
 import NodeComposer from "./NodeComposer";
 import { TILTS, type GroupData, type NodeData, type ReactionType } from "./feed-types";
@@ -148,7 +149,7 @@ export default function HomeFeed({ groupData: initialGroupData }: { groupData: G
   const slide = reduce ? 0 : 60;
 
   if (!currentDate) {
-    return <div className="flex flex-1 flex-col gap-8" />;
+    return <GhostFeed />;
   }
 
   return (
@@ -158,23 +159,14 @@ export default function HomeFeed({ groupData: initialGroupData }: { groupData: G
       {/* Centerpiece: add a log */}
       {isToday && (
         <div className="relative flex flex-col items-center py-4">
-          <div className="absolute -top-2 left-[8%] hidden w-28 -rotate-6 sm:block">
-            <p className="font-hand text-base leading-tight text-pencil/70">
-              {nodes.length === 0 && !loading ? "nothing yet — start here!" : "one more thing?"}
-            </p>
-            <ScribbleArrow className="mt-1 h-14 w-24" />
-          </div>
           <motion.div
             animate={reduce ? undefined : { y: [0, -5, 0], rotate: [-1, 0.5, -1] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           >
-            <WobblyButton variant="marker" size="xl" onClick={() => setIsModalOpen(true)} className="font-hand font-bold">
-              + log something
+            <WobblyButton variant="marker" onClick={() => setIsModalOpen(true)} aria-label="Add a log" title="Add a log" className="h-20 w-20 rounded-full p-0 text-5xl">
+              <svg aria-hidden="true" viewBox="0 0 32 32" className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M16 5v22M5 16h22" /></svg>
             </WobblyButton>
           </motion.div>
-          <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.25em] text-pencil/50">
-            note · photo · or both
-          </p>
         </div>
       )}
 
@@ -190,21 +182,13 @@ export default function HomeFeed({ groupData: initialGroupData }: { groupData: G
       <AnimatePresence mode="wait" custom={direction}>
         <motion.div
           key={dateStr}
-          initial={{ opacity: 0, x: direction * slide }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -direction * slide }}
+          initial={{ opacity: 0, y: slide / 2, x: direction * slide / 4 }}
+          animate={{ opacity: 1, y: 0, x: 0 }}
+          exit={{ opacity: 0, y: -slide / 4 }}
           transition={{ duration: 0.28, ease: "easeOut" }}
         >
           {loading ? (
-            <div className="flex min-h-[220px] items-center justify-center border-2 border-dashed border-pencil/40 wobbly-md">
-              <motion.p
-                className="font-hand text-xl text-pencil/50"
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 1.4, repeat: Infinity }}
-              >
-                flipping pages…
-              </motion.p>
-            </div>
+            <GhostFeed />
           ) : nodes.length === 0 ? (
             <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 border-2 border-dashed border-pencil/40 p-8 text-center wobbly-md">
               <span className="font-serif text-4xl text-pencil/20">◇</span>

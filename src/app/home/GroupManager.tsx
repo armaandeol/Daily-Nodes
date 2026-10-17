@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { fetchUserGroup, createGroup, regenerateInviteCode, joinGroupByCode, updateGroup, kickGroupMember, leaveGroup } from "./actions";
 import JoinGroupModal from "./JoinGroupModal";
+import { WobblyButton } from "@/components/sketch";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 type GroupData = {
   id: string;
@@ -25,6 +27,8 @@ type Member = {
 type ActiveTab = "overview" | "members" | "settings";
 
 export default function GroupManager({ initialGroup }: { initialGroup?: any }) {
+  const [expanded, setExpanded] = useState(false);
+  const reduce = useReducedMotion();
   const [group, setGroup] = useState<GroupData | null>(initialGroup || null);
   const [loading, setLoading] = useState(initialGroup === undefined);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -211,35 +215,17 @@ export default function GroupManager({ initialGroup }: { initialGroup?: any }) {
   if (!group) {
     return (
       <>
-        <div className="bg-card border-2 border-pencil wobbly-md p-6 shadow-hard font-note text-pencil">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-white shadow-sm border border-blue-200/50 flex items-center justify-center flex-shrink-0">
-                <span className="text-lg">👥</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-base font-semibold text-neutral-900 mb-1">Create or Join a Group</h3>
-                <p className="text-sm text-neutral-600 leading-relaxed">
-                  You&apos;re not part of any group yet. Create one to collaborate or join an existing group with an invite code.
-                </p>
-              </div>
+        <section className="border-y border-dashed border-pencil/30 py-2 font-note text-pencil">
+          <WobblyButton onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} aria-controls="circle-options" className="w-full justify-between border-0 bg-transparent px-0 py-1 shadow-none hover:bg-transparent hover:text-ink">
+            <span>👥 Create or join a group</span><span aria-hidden="true">{expanded ? "−" : "+"}</span>
+          </WobblyButton>
+          <AnimatePresence initial={false}>{expanded && <motion.div id="circle-options" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reduce ? 0 : 0.2 }} className="overflow-hidden">
+            <div className="flex flex-wrap gap-3 pb-2 pt-3">
+              <WobblyButton onClick={() => setIsCreateModalOpen(true)}>+ Create group</WobblyButton>
+              <WobblyButton onClick={() => setIsJoinModalOpen(true)}>Join group ↗</WobblyButton>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="px-4 py-2 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors"
-              >
-                + Create Group
-              </button>
-              <button
-                onClick={() => setIsJoinModalOpen(true)}
-                className="px-4 py-2 bg-white border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition-colors"
-              >
-                Join Group
-              </button>
-            </div>
-          </div>
-        </div>
+          </motion.div>}</AnimatePresence>
+        </section>
 
         {/* Create Group Modal */}
         {isCreateModalOpen && (
