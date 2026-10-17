@@ -2,9 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import {
   fetchUserProfile,
   updateUserProfile,
@@ -12,11 +10,13 @@ import {
   uploadUserAvatar,
 } from "@/app/home/actions";
 import ActivityCalendar from "./ActivityCalendar";
+import { Tape, StampLabel, WobblyButton, Scribble } from "@/components/sketch";
+import { PageMotion, GhostPage } from "@/components/sketch/PageMotion";
+import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
   const { user } = useUser();
   const { signOut } = useClerk();
-  const router = useRouter();
 
   // Profile data state
   const [displayName, setDisplayName] = useState("");
@@ -171,177 +171,193 @@ export default function ProfilePage() {
   };
 
   if (loading) {
-    return (
-      <main className="min-h-screen max-w-[680px] mx-auto px-6 flex items-center justify-center">
-        <p className="text-sm font-medium text-neutral-500 animate-pulse">Loading profile...</p>
-      </main>
-    );
+    return <GhostPage />;
   }
 
+  const inputClass =
+    "border-2 border-pencil bg-card px-4 py-3 font-note text-base text-pencil shadow-hard-sm wobbly-sm focus:border-marker focus:outline-none transition-colors";
+  const labelClass = "font-mono text-[10px] uppercase tracking-[0.25em] text-pencil/60";
+
   return (
-    <main className="min-h-screen max-w-[680px] mx-auto px-6 flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between pt-7 pb-5 border-b border-neutral-200">
-        <Link
-          href="/home"
-          className="text-sm font-semibold tracking-wide text-neutral-900 hover:text-neutral-600 transition-colors"
-        >
-          ← back
-        </Link>
-        <span className="text-sm font-semibold tracking-wide text-neutral-900">profile</span>
-        <div className="w-16" /> {/* Spacer for centering */}
-      </header>
+    <div className="min-h-screen paper-grain text-pencil selection:bg-marker selection:text-card">
+      <main className="mx-auto flex min-h-screen max-w-[640px] flex-col px-5">
+        {/* Masthead */}
+        <header className="mt-6 border-y-4 border-double border-pencil py-4">
+          <div className="flex items-center justify-between gap-4">
+            <Link href="/home" className="font-note text-lg text-pencil/70 transition-colors hover:text-marker">
+              ← home
+            </Link>
+            <span className="font-serif text-2xl font-black tracking-tight sm:text-3xl">
+              Roz<span className="text-marker">.</span>
+            </span>
+            <span className="w-14" aria-hidden />
+          </div>
+        </header>
 
-      {/* Profile Content */}
-      <section className="flex-1 flex flex-col pt-12 pb-8 gap-8">
-        {/* Profile Picture */}
-        <div className="flex flex-col items-center gap-3">
-          <div
-            onClick={handleAvatarClick}
-            className="group relative w-24 h-24 rounded-full overflow-hidden bg-neutral-200 cursor-pointer shadow-sm border border-neutral-200 hover:border-neutral-400 transition-all"
-          >
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt="Profile"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        <PageMotion className="flex flex-1 flex-col gap-10 pb-16 pt-10">
+          {/* Avatar — pinned polaroid */}
+          <section className="flex flex-col items-center gap-3">
+            <div className="relative -rotate-2 border-2 border-pencil bg-card p-2 pb-8 shadow-hard wobbly-sm">
+              <Tape />
+              <div
+                onClick={handleAvatarClick}
+                className="group relative h-32 w-32 cursor-pointer overflow-hidden border-2 border-pencil/20 bg-erased"
+              >
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Profile"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center font-hand text-4xl font-bold text-pencil/40">
+                    {(displayName || user?.firstName || "U")[0]}
+                  </div>
+                )}
+
+                {/* Hover overlay */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-pencil/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-card">change</span>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-card">photo</span>
+                </div>
+
+                {/* Uploading indicator overlay */}
+                {isUploadingAvatar && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-pencil/60">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-card border-t-transparent" />
+                  </div>
+                )}
+              </div>
+              <p className="absolute bottom-1.5 left-0 w-full text-center font-hand text-sm text-pencil/60">
+                that&apos;s you!
+              </p>
+            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+            />
+            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-pencil/50">
+              JPG, PNG or WEBP · max 2MB
+            </p>
+          </section>
+
+          {/* Activity calendar */}
+          <section className="flex flex-col gap-3">
+            <div className="flex items-end justify-between">
+              <div className="flex flex-col">
+                <StampLabel tone="marker">log map</StampLabel>
+                <h2 className="mt-2 font-serif text-2xl font-black">your month, on paper</h2>
+                <Scribble className="h-2.5 w-36" />
+              </div>
+              <p className="max-w-[140px] text-right font-hand text-sm leading-tight text-pencil/60">
+                tap a marked day to revisit it
+              </p>
+            </div>
+            <ActivityCalendar />
+          </section>
+
+          {/* Form Fields */}
+          <section className="flex flex-col gap-6">
+            <StampLabel tone="ink">the fine print</StampLabel>
+
+            {/* Display Name */}
+            <div className="flex flex-col gap-2">
+              <label className={labelClass}>Display Name</label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className={inputClass}
+                placeholder="Enter your display name"
               />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-neutral-400 text-2xl font-semibold">
-                {(displayName || user?.firstName || "U")[0]}
-              </div>
-            )}
-
-            {/* Hover overlay */}
-            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <span className="text-[10px] uppercase tracking-widest text-white font-medium">Change</span>
-              <span className="text-[10px] uppercase tracking-widest text-white font-medium">Photo</span>
             </div>
 
-            {/* Uploading indicator overlay */}
-            {isUploadingAvatar && (
-              <div className="absolute inset-0 bg-neutral-900/60 flex items-center justify-center">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
-          </div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-          />
-          <p className="text-[11px] text-neutral-400 tracking-wide">JPG, PNG or WEBP. Max 2MB.</p>
-        </div>
-
-        {/* Activity calendar */}
-        <ActivityCalendar />
-
-        {/* Form Fields */}
-        <div className="flex flex-col gap-6">
-          {/* Display Name */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs tracking-widest uppercase text-neutral-400">
-              Display Name
-            </label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="px-4 py-3 border border-neutral-300 rounded-lg text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent"
-              placeholder="Enter your display name"
-            />
-          </div>
-
-          {/* Username */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs tracking-widest uppercase text-neutral-400">
-              Username
-            </label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ""))}
-              className="px-4 py-3 border border-neutral-300 rounded-lg text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent"
-              placeholder="Enter your username"
-            />
-            {isCheckingUsername && (
-              <p className="text-xs text-neutral-500 animate-pulse mt-0.5">Checking availability...</p>
-            )}
-            {usernameSuccess && (
-              <p className="text-xs text-green-600 mt-0.5">✓ {usernameSuccess}</p>
-            )}
-            {usernameError && (
-              <p className="text-xs text-red-500 mt-0.5">✗ {usernameError}</p>
-            )}
-          </div>
-
-          {/* Bio */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs tracking-widest uppercase text-neutral-400">
-              Bio
-            </label>
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              rows={4}
-              className="px-4 py-3 border border-neutral-300 rounded-lg text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent resize-none"
-              placeholder="Tell us about yourself..."
-            />
-          </div>
-
-          {/* Digest Slot */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs tracking-widest uppercase text-neutral-400">
-              Digest Slot
-            </label>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDigestSlot("morning")}
-                className={`flex-1 px-4 py-3 border rounded-lg text-sm font-medium transition-all ${
-                  digestSlot === "morning"
-                    ? "bg-neutral-900 text-white border-neutral-900"
-                    : "bg-white text-neutral-900 border-neutral-300 hover:border-neutral-400"
-                }`}
-              >
-                Morning
-              </button>
-              <button
-                onClick={() => setDigestSlot("night")}
-                className={`flex-1 px-4 py-3 border rounded-lg text-sm font-medium transition-all ${
-                  digestSlot === "night"
-                    ? "bg-neutral-900 text-white border-neutral-900"
-                    : "bg-white text-neutral-900 border-neutral-300 hover:border-neutral-400"
-                }`}
-              >
-                Night
-              </button>
+            {/* Username */}
+            <div className="flex flex-col gap-2">
+              <label className={labelClass}>Username</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ""))}
+                className={inputClass}
+                placeholder="Enter your username"
+              />
+              {isCheckingUsername && (
+                <p className="mt-0.5 animate-pulse font-note text-sm text-pencil/60">Checking availability...</p>
+              )}
+              {usernameSuccess && (
+                <p className="mt-0.5 font-note text-sm text-ink">✓ {usernameSuccess}</p>
+              )}
+              {usernameError && (
+                <p className="mt-0.5 font-note text-sm text-marker">✗ {usernameError}</p>
+              )}
             </div>
-          </div>
 
-          {/* Save Button */}
-          {hasChanges && (
-            <Button
-              onClick={handleSave}
-              disabled={!!usernameError || saving}
-              className="w-full py-6 text-sm font-semibold tracking-wide"
+            {/* Bio */}
+            <div className="flex flex-col gap-2">
+              <label className={labelClass}>Bio</label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={4}
+                className={cn(inputClass, "resize-none")}
+                placeholder="Tell us about yourself..."
+              />
+            </div>
+
+            {/* Digest Slot */}
+            <div className="flex flex-col gap-2">
+              <label className={labelClass}>Digest Slot</label>
+              <div className="flex gap-3">
+                {(["morning", "night"] as const).map((slot) => (
+                  <button
+                    key={slot}
+                    onClick={() => setDigestSlot(slot)}
+                    className={cn(
+                      "flex-1 border-2 border-pencil px-4 py-3 font-note text-base capitalize shadow-hard-sm transition-all wobbly-sm",
+                      digestSlot === slot
+                        ? "bg-pencil text-card"
+                        : "bg-card text-pencil hover:-translate-y-0.5 hover:bg-postit",
+                    )}
+                  >
+                    {slot === "morning" ? "☀ morning" : "☾ night"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Save Button */}
+            {hasChanges && (
+              <WobblyButton
+                variant="marker"
+                size="lg"
+                onClick={handleSave}
+                disabled={!!usernameError || saving}
+                className="w-full"
+              >
+                {saving ? "saving changes..." : "save changes"}
+              </WobblyButton>
+            )}
+
+            {/* Logout Button */}
+            <WobblyButton
+              variant="paper"
+              size="lg"
+              onClick={() => signOut({ redirectUrl: "/sign-in" })}
+              className="w-full text-marker hover:bg-marker hover:text-card"
             >
-              {saving ? "Saving Changes..." : "Save Changes"}
-            </Button>
-          )}
+              log out
+            </WobblyButton>
+          </section>
+        </PageMotion>
 
-          {/* Logout Button */}
-          <Button
-            variant="outline"
-            onClick={() => signOut({ redirectUrl: '/sign-in' })}
-            className="w-full py-6 text-sm font-semibold tracking-wide text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-          >
-            Logout
-          </Button>
-        </div>
-      </section>
-    </main>
+        <footer className="border-t-2 border-dashed border-pencil/30 py-5 text-center font-mono text-[10px] uppercase tracking-[0.25em] text-pencil/50">
+          Roz · one page a day
+        </footer>
+      </main>
+    </div>
   );
 }
-
