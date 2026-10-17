@@ -1,3 +1,4 @@
+// @ts-nocheck -- run with `bun test`
 import { expect, test } from "bun:test";
 import { mergeHeadingIntoDescription } from "../feed-types";
 test("heading moves into empty description", () => expect(mergeHeadingIntoDescription("Run", "")).toBe("Run"));
