@@ -1,0 +1,4 @@
+- [ ] Compact Home add-log and group controls; update Roz branding and composer close control.
+- [ ] Add ghost loading layouts and reduced-motion-aware paper transitions.
+- [ ] Add Explore edition history, Home navigation, and profile photo.
+- [ ] Verify available flows and report authentication blockers.
