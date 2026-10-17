@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { StampLabel, Tape, Tack, WobblyButton } from "@/components/sketch";
 import { createNode } from "./actions";
 import { CATEGORIES, categoryOf, mergeHeadingIntoDescription, type GroupData } from "./feed-types";
+import PhotoCropEditor from "./PhotoCropEditor";
 
 const inputCls =
   "w-full border-2 border-pencil bg-card px-3 py-2 font-note text-lg text-pencil placeholder:text-pencil/40 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/20 wobbly-sm";
@@ -31,6 +32,8 @@ export default function NodeComposer({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [originalPhoto, setOriginalPhoto] = useState<File | null>(null);
 
   const memberCount = groupData?.members?.length || 0;
   const sharedDisabled = !groupData || memberCount <= 1;
@@ -48,11 +51,15 @@ export default function NodeComposer({
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && reset();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || submitting) return;
+      if (cropFile) setCropFile(null);
+      else reset();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, cropFile, submitting]);
 
   function reset() {
     setTitle("");
@@ -60,6 +67,8 @@ export default function NodeComposer({
     setType("custom");
     setVisibility("solo");
     setImageFile(null);
+    setCropFile(null);
+    setOriginalPhoto(null);
     setMovedNote(false);
     setError(null);
     setShowHelp(false);
@@ -77,8 +86,19 @@ export default function NodeComposer({
     }
   }
 
+  function selectPhoto(file: File | null) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Choose an image file.");
+      return;
+    }
+    setError(null);
+    setCropFile(file);
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (cropFile || submitting) return;
     if (!imageFile && !title.trim()) {
       setError("Give your note a heading.");
       return;
@@ -119,7 +139,7 @@ export default function NodeComposer({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={reset}
+          onClick={() => { if (!cropFile && !submitting) reset(); }}
         >
           <motion.div
             role="dialog"
@@ -133,7 +153,17 @@ export default function NodeComposer({
             className="relative my-6 grid w-full max-w-[860px] gap-6 border-[3px] border-pencil p-5 pt-14 shadow-hard-lg paper-grain wobbly-md md:grid-cols-[1.1fr_1fr] md:p-7 md:pt-14"
           >
             <Tape className="w-28" />
-            <WobblyButton type="button" onClick={reset} disabled={submitting} aria-label="Close new log" title="Close" className="absolute right-3 top-3 h-9 w-9 border-0 bg-transparent p-0 text-3xl text-marker shadow-none hover:bg-transparent hover:text-marker">×</WobblyButton>
+            <WobblyButton type="button" onClick={() => cropFile ? setCropFile(null) : reset()} disabled={submitting} aria-label={cropFile ? "Close photo crop" : "Close new log"} title="Close" className="absolute right-3 top-3 h-9 w-9 border-0 bg-transparent p-0 text-3xl text-marker shadow-none hover:bg-transparent hover:text-marker">×</WobblyButton>
+            {cropFile ? <PhotoCropEditor
+              key={`${cropFile.name}-${cropFile.lastModified}`}
+              file={cropFile}
+              onCancel={() => setCropFile(null)}
+              onConfirm={(cropped) => {
+                setOriginalPhoto(cropFile);
+                handleImage(cropped);
+                setCropFile(null);
+              }}
+            /> : <>
             <form onSubmit={submit} className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-serif text-3xl font-black text-pencil">
@@ -246,13 +276,17 @@ export default function NodeComposer({
                     type="file"
                     accept="image/*"
                     className="sr-only"
-                    onChange={(e) => handleImage(e.target.files?.[0] ?? null)}
+                    onChange={(e) => {
+                      selectPhoto(e.target.files?.[0] ?? null);
+                      e.target.value = "";
+                    }}
                   />
                 </label>
                 {imageFile && (
-                  <button type="button" onClick={() => handleImage(null)} className="self-start font-note text-sm text-marker underline">
-                    remove photo
-                  </button>
+                  <div className="flex gap-3">
+                    <WobblyButton type="button" onClick={() => { if (originalPhoto) setCropFile(originalPhoto); }} className="text-sm">adjust crop</WobblyButton>
+                    <WobblyButton type="button" onClick={() => { handleImage(null); setOriginalPhoto(null); }} className="text-sm text-marker">remove photo</WobblyButton>
+                  </div>
                 )}
               </div>
 
@@ -331,6 +365,7 @@ export default function NodeComposer({
                 </AnimatePresence>
               </div>
             </div>
+            </>}
           </motion.div>
         </motion.div>
       )}

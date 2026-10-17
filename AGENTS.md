@@ -11,3 +11,4 @@
 
 - Shared paper entrance animations and ghost placeholders live in the sketch UI module, so Home and Explore maintain consistent loading states and reduced-motion behavior.
 - Explore navigation selects existing generated edition IDs from the backend history, rather than inventing digests for dates with no edition.
+- Photo cropping uses react-easy-crop in the composer and a browser canvas exporter; only confirmed crop files reach the existing upload action, keeping originals client-side.

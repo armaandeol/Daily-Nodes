@@ -96,3 +96,9 @@
     color: inherit;
   }
 }
+
+.photo-crop-stage .photo-crop-frame {
+  border: 2px solid var(--card);
+  color: var(--card);
+  box-shadow: 0 0 0 9999px color-mix(in srgb, var(--pencil) 65%, transparent);
+}
