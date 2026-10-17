@@ -52,7 +52,7 @@ function DayNavigator({
 export default function HomeFeed({ groupData: initialGroupData }: { groupData: GroupData }) {
   const { userId } = useAuth();
   const reduce = useReducedMotion();
-  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [nodes, setNodes] = useState<NodeData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,8 +60,14 @@ export default function HomeFeed({ groupData: initialGroupData }: { groupData: G
   const [isModalOpen, setIsModalOpen] = useState(false);
   const cacheRef = useRef<Record<string, NodeData[]>>({});
 
-  const dateStr = format(currentDate, "yyyy-MM-dd");
-  const isToday = dateStr === format(new Date(), "yyyy-MM-dd");
+  // "Now" is only resolved on the client, after mount, so the SSR pass and the
+  // first client render agree (avoids a hydration mismatch around midnight).
+  useEffect(() => {
+    setCurrentDate(new Date());
+  }, []);
+
+  const dateStr = currentDate ? format(currentDate, "yyyy-MM-dd") : null;
+  const isToday = dateStr !== null && dateStr === format(new Date(), "yyyy-MM-dd");
 
   // Refresh group data when the composer opens (catches recent create/join)
   useEffect(() => {
@@ -71,19 +77,21 @@ export default function HomeFeed({ groupData: initialGroupData }: { groupData: G
 
   // Load nodes when date changes (stale-while-revalidate)
   useEffect(() => {
+    if (!dateStr) return;
+    const key = dateStr;
     let active = true;
     async function load() {
-      if (cacheRef.current[dateStr]) {
-        setNodes(cacheRef.current[dateStr]);
+      if (cacheRef.current[key]) {
+        setNodes(cacheRef.current[key]);
         setLoading(false);
       } else {
         setLoading(true);
       }
       try {
-        const data = await fetchNodes(dateStr);
+        const data = await fetchNodes(key);
         if (!active) return;
-        if (JSON.stringify(data) !== JSON.stringify(cacheRef.current[dateStr])) {
-          cacheRef.current[dateStr] = data;
+        if (JSON.stringify(data) !== JSON.stringify(cacheRef.current[key])) {
+          cacheRef.current[key] = data;
           setNodes(data);
         }
       } catch (err) {
@@ -100,14 +108,15 @@ export default function HomeFeed({ groupData: initialGroupData }: { groupData: G
 
   const goPrev = () => {
     setDirection(-1);
-    setCurrentDate((d) => subDays(d, 1));
+    setCurrentDate((d) => (d ? subDays(d, 1) : d));
   };
   const goNext = () => {
     setDirection(1);
-    setCurrentDate((d) => addDays(d, 1));
+    setCurrentDate((d) => (d ? addDays(d, 1) : d));
   };
 
   const refresh = async () => {
+    if (!dateStr) return;
     const data = await fetchNodes(dateStr);
     cacheRef.current[dateStr] = data;
     setNodes(data);
@@ -130,13 +139,17 @@ export default function HomeFeed({ groupData: initialGroupData }: { groupData: G
       return { ...node, reactions: next };
     });
     setNodes(updated);
-    cacheRef.current[dateStr] = updated;
+    if (dateStr) cacheRef.current[dateStr] = updated;
     reactToNode(nodeId, reactionType)
       .then(refresh)
       .catch((err) => console.error("Failed to sync reaction with backend:", err));
   };
 
   const slide = reduce ? 0 : 60;
+
+  if (!currentDate) {
+    return <div className="flex flex-1 flex-col gap-8" />;
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-8">
