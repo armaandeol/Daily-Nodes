@@ -197,7 +197,8 @@ export default function HomeFeed({
         <span className="h-0 flex-1 border-t-2 border-dashed border-pencil/40" />
       </div>
 
-      {!isToday && dateStr && (
+      {/* Digests are only generated for days with 3+ logs — no digest, no link. */}
+      {!isToday && dateStr && !loading && nodes.length >= 3 && (
         <div className="-mt-4 flex justify-center">
           <Link
             href={`/explore?date=${dateStr}`}

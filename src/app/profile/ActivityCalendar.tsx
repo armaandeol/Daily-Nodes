@@ -14,16 +14,18 @@ import {
   isSameDay,
 } from "date-fns";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
-import { fetchNodeActivity, type NodeActivityDay } from "@/app/home/actions";
-import { categoryOf } from "@/app/home/feed-types";
+import { fetchNodeActivity, fetchNodes, type NodeActivityDay } from "@/app/home/actions";
+import { imageSrc, type NodeData } from "@/app/home/feed-types";
+import { Tape } from "@/components/sketch";
+import { cn } from "@/lib/utils";
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
+/** Marker-red ink wash for days whose logs are all text. */
 function intensityClass(count: number) {
-  if (count <= 0) return "bg-neutral-100 border-neutral-200";
-  if (count === 1) return "bg-marker/25 border-marker/40";
-  if (count === 2) return "bg-marker/50 border-marker/60";
-  return "bg-marker border-marker text-white";
+  if (count === 1) return "bg-marker/25";
+  if (count === 2) return "bg-marker/50";
+  return "bg-marker";
 }
 
 export default function ActivityCalendar() {
@@ -31,24 +33,49 @@ export default function ActivityCalendar() {
   const today = useMemo(() => new Date(), []);
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
   const [activity, setActivity] = useState<Record<string, NodeActivityDay>>({});
+  const [photos, setPhotos] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setPhotos({});
     const start = format(monthCursor, "yyyy-MM-dd");
     const end = format(endOfMonth(monthCursor), "yyyy-MM-dd");
+
     fetchNodeActivity(start, end)
-      .then((days) => {
+      .then(async (days) => {
         if (!active) return;
         const map: Record<string, NodeActivityDay> = {};
         for (const d of days) map[d.date] = d;
         setActivity(map);
+        setLoading(false);
+
+        // For each day with logs, pick one random photo (if any image logs exist).
+        const withLogs = days.filter((d) => d.count > 0);
+        const thumbs = await Promise.all(
+          withLogs.map(async (d) => {
+            try {
+              const nodes: NodeData[] = await fetchNodes(d.date);
+              const withImages = nodes.filter((n) => n.image_url || n.image_signed_url);
+              if (withImages.length === 0) return [d.date, null] as const;
+              const pick = withImages[Math.floor(Math.random() * withImages.length)];
+              return [d.date, imageSrc(pick)] as const;
+            } catch {
+              return [d.date, null] as const;
+            }
+          }),
+        );
+        if (!active) return;
+        const pmap: Record<string, string> = {};
+        for (const [date, url] of thumbs) if (url) pmap[date] = url;
+        setPhotos(pmap);
       })
-      .catch((err) => console.error("Failed to fetch activity:", err))
-      .finally(() => {
+      .catch((err) => {
+        console.error("Failed to fetch activity:", err);
         if (active) setLoading(false);
       });
+
     return () => {
       active = false;
     };
@@ -60,74 +87,124 @@ export default function ActivityCalendar() {
   );
   const leadingBlanks = getDay(startOfMonth(monthCursor));
 
-  const goToDay = (day: Date) => {
+  const goToDay = (day: Date, count: number) => {
+    if (count === 0) return; // no logs, nowhere to go
     if (isAfter(day, today) && !isSameDay(day, today)) return;
     router.push(`/home?date=${format(day, "yyyy-MM-dd")}`);
   };
 
   return (
-    <div className="w-full border-2 border-neutral-300 rounded-lg bg-neutral-50 p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="relative border-2 border-pencil bg-card p-4 pt-6 shadow-hard wobbly-md">
+      <Tape />
+
+      {/* Month nav */}
+      <div className="mb-3 flex items-center justify-between">
         <button
           onClick={() => setMonthCursor((m) => subMonths(m, 1))}
           aria-label="Previous month"
-          className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-200 hover:text-neutral-900 transition-colors"
+          className="flex h-8 w-8 items-center justify-center border-2 border-pencil bg-paper text-pencil shadow-hard-sm transition-transform hover:-rotate-6 wobbly-sm"
         >
           <CaretLeft size={14} weight="bold" />
         </button>
-        <span className="text-xs font-semibold tracking-wide text-neutral-700">
+        <span className="font-hand text-xl font-bold text-pencil -rotate-1">
           {format(monthCursor, "MMMM yyyy")}
         </span>
         <button
           onClick={() => setMonthCursor((m) => addMonths(m, 1))}
           aria-label="Next month"
           disabled={isSameDay(startOfMonth(monthCursor), startOfMonth(today))}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-200 hover:text-neutral-900 transition-colors disabled:opacity-0 disabled:pointer-events-none"
+          className="flex h-8 w-8 items-center justify-center border-2 border-pencil bg-paper text-pencil shadow-hard-sm transition-transform hover:rotate-6 disabled:pointer-events-none disabled:opacity-0 wobbly-sm"
         >
           <CaretRight size={14} weight="bold" />
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+      {/* Weekday row */}
+      <div className="mb-1 grid grid-cols-7">
         {WEEKDAYS.map((w, i) => (
-          <span key={i} className="text-center text-[10px] font-medium text-neutral-400">
+          <span key={i} className="text-center font-mono text-[9px] uppercase tracking-widest text-pencil/50">
             {w}
           </span>
         ))}
       </div>
 
-      <div className={`grid grid-cols-7 gap-1.5 ${loading ? "opacity-50" : ""} transition-opacity`}>
+      {/* Day grid — hairline dividers like the reference sheet */}
+      <div
+        className={cn(
+          "grid grid-cols-7 gap-px border-2 border-pencil bg-pencil/30 transition-opacity",
+          loading && "opacity-50",
+        )}
+      >
         {Array.from({ length: leadingBlanks }).map((_, i) => (
-          <span key={`blank-${i}`} />
+          <div key={`blank-${i}`} aria-hidden className="aspect-square bg-paper" />
         ))}
         {days.map((day) => {
           const key = format(day, "yyyy-MM-dd");
           const entry = activity[key];
           const count = entry?.count || 0;
+          const photo = photos[key];
           const future = isAfter(day, today) && !isSameDay(day, today);
-          const icon = count > 0 ? categoryOf(entry.top_type).icon : null;
+          const empty = count === 0 || future;
+          const isToday = isSameDay(day, today);
+
           return (
             <button
               key={key}
-              onClick={() => goToDay(day)}
-              disabled={future}
-              title={count > 0 ? `${count} log${count > 1 ? "s" : ""} on ${format(day, "MMM d")}` : format(day, "MMM d")}
-              className={`aspect-square rounded-[6px] border flex items-center justify-center text-[11px] transition-transform ${intensityClass(count)} ${
-                future ? "opacity-0 pointer-events-none" : "hover:scale-110 cursor-pointer"
-              } ${isSameDay(day, today) ? "ring-2 ring-neutral-900 ring-offset-1" : ""}`}
+              onClick={() => goToDay(day, count)}
+              disabled={empty}
+              title={
+                empty
+                  ? format(day, "MMM d")
+                  : `${count} log${count > 1 ? "s" : ""} on ${format(day, "MMM d")} — open this day`
+              }
+              className={cn(
+                "group relative aspect-square bg-paper text-left",
+                empty ? "cursor-default" : "cursor-pointer transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-hard-sm",
+              )}
             >
-              {icon || <span className="text-[9px] text-neutral-400">{format(day, "d")}</span>}
+              {/* Photo days: a random photo from that day, pinned under the date line */}
+              {photo && (
+                <img
+                  src={photo}
+                  alt=""
+                  loading="lazy"
+                  className="absolute inset-x-1 bottom-1 top-5 h-[calc(100%-24px)] w-[calc(100%-8px)] object-cover"
+                />
+              )}
+              {/* Text-only days: marker ink wash, deeper with more logs */}
+              {!photo && count > 0 && (
+                <span aria-hidden className={cn("absolute inset-x-1 bottom-1 top-5", intensityClass(count))} />
+              )}
+
+              <span
+                className={cn(
+                  "absolute left-1 top-1 font-mono text-[10px] leading-none",
+                  empty ? "text-pencil/30" : "text-pencil",
+                  isToday && "font-bold text-marker",
+                )}
+              >
+                {format(day, "d")}
+              </span>
+              {!empty && (
+                <span
+                  aria-hidden
+                  className="absolute right-1 top-0.5 font-mono text-[11px] leading-none text-pencil/40 transition-colors group-hover:text-marker"
+                >
+                  +
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      <div className="mt-3 flex items-center justify-end gap-1.5 text-[10px] text-neutral-400">
+      {/* Legend */}
+      <div className="mt-3 flex items-center justify-end gap-1.5 font-mono text-[9px] uppercase tracking-widest text-pencil/50">
         <span>less</span>
-        <span className="h-3 w-3 rounded-[3px] border bg-neutral-100 border-neutral-200" />
-        <span className="h-3 w-3 rounded-[3px] border bg-marker/25 border-marker/40" />
-        <span className="h-3 w-3 rounded-[3px] border bg-marker/50 border-marker/60" />
-        <span className="h-3 w-3 rounded-[3px] border bg-marker border-marker" />
+        <span className="h-3 w-3 border border-pencil/40 bg-paper" />
+        <span className="h-3 w-3 border border-pencil/40 bg-marker/25" />
+        <span className="h-3 w-3 border border-pencil/40 bg-marker/50" />
+        <span className="h-3 w-3 border border-pencil/40 bg-marker" />
         <span>more</span>
       </div>
     </div>
