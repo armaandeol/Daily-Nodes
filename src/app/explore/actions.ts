@@ -44,7 +44,7 @@ export async function fetchDigestEditions(): Promise<Digest[]> {
 
   const url = new URL(`${API_URL}/api/v1/digests/my`);
   url.searchParams.set("period", "daily");
-  url.searchParams.set("limit", "100");
+  url.searchParams.set("limit", "50");
 
   const res = await fetch(url.toString(), {
     headers: {
