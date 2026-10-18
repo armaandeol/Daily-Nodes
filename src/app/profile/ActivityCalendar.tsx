@@ -88,7 +88,7 @@ export default function ActivityCalendar() {
   let photoIndex = 0;
 
   return (
-    <div className="relative scrapbook-sheet border-2 border-pencil px-4 pb-5 pt-9 shadow-hard torn-top">
+    <div className="relative scrapbook-sheet border-2 border-pencil px-4 pb-5 pt-9 shadow-hard wobbly-md">
       {/* Corner tape */}
       <span aria-hidden className="absolute -left-3 top-1 h-6 w-16 -rotate-[30deg] border border-pencil/20 bg-postit/80" />
       <span aria-hidden className="absolute -right-3 top-1 h-6 w-16 rotate-[30deg] border border-pencil/20 bg-ink/20" />
