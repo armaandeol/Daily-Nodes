@@ -5,12 +5,12 @@
 - Photo logs keep their own heading; the polaroid shows the heading in handwriting under the photo, description below it — still never over the image.
 - Update the saved project rule and the old test to match.
 
-## 2. Category colours
-Each category gets its own paper tone, used as a small colored chip on cards, in the category picker and in the preview:
-- Study: ink blue
-- Custom: marker red
-- Other: post-it yellow / pencil
-- Any remaining categories get a distinct muted tone (green, orange) from the same palette.
+## 2. Category stamps
+Card colours stay as they are. Each category instead gets a small rubber-stamp imprint (based on your reference), slightly tilted with a faded, grainy ink texture, like it was pressed onto the paper:
+- Study: ink-blue rectangle stamp with a double border, "STUDY"
+- Custom: marker-red round stamp, "CUSTOM"
+- Mood / Other: rounded pill-shaped stamp with a dotted line, in pencil grey or a muted green
+- Each category keeps one fixed stamp shape and ink colour, so you can tell them apart at a glance. The same stamp shows on cards, in the category picker and in the preview.
 
 ## 3. Photo cards: category visible
 - Move the category chip to sit on the polaroid's white frame, top-left above the photo edge (like a stamped label), with the tape shifted so nothing covers it.
