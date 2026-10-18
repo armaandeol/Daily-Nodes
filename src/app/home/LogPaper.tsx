@@ -76,9 +76,9 @@ export function paperProps(style: LogStyleId, hasPhoto: boolean): { className: s
       };
     case "scrap":
       return {
-        className: "bg-[#efe3c8] drop-shadow-[4px_4px_0_var(--pencil)]",
+        className: "bg-[#efe3c8]",
         style: { clipPath: TORN },
-        decor: null,
+        decor: <Tape rotate={3} className="!top-1" />,
         margin: false,
       };
     default:
