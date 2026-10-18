@@ -29,7 +29,7 @@ export async function fetchNodes(date?: string) {
   return res.json();
 }
 
-export type NodeActivityDay = { date: string; count: number; top_type: string };
+export type NodeActivityDay = { date: string; count: number; top_type: string; thumbnail_url?: string | null };
 
 export async function fetchNodeActivity(start: string, end: string): Promise<NodeActivityDay[]> {
   const { getToken } = await auth();

@@ -14,8 +14,7 @@ import {
   isSameDay,
 } from "date-fns";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
-import { fetchNodeActivity, fetchNodes, type NodeActivityDay } from "@/app/home/actions";
-import { imageSrc, type NodeData } from "@/app/home/feed-types";
+import { fetchNodeActivity, type NodeActivityDay } from "@/app/home/actions";
 import { Tape } from "@/components/sketch";
 import { cn } from "@/lib/utils";
 
@@ -23,53 +22,34 @@ const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
 /** Marker-red ink wash for days whose logs are all text. */
 function intensityClass(count: number) {
-  if (count === 1) return "bg-marker/25";
-  if (count === 2) return "bg-marker/50";
-  return "bg-marker";
+  if (count >= 10) return "bg-marker";
+  if (count >= 5) return "bg-marker/50";
+  return "bg-marker/25";
 }
+
+/** Slight, varied tilts so pasted-in photos don't all sit dead straight. */
+const PHOTO_TILTS = ["-rotate-2", "rotate-1", "-rotate-1", "rotate-2"];
 
 export default function ActivityCalendar() {
   const router = useRouter();
   const today = useMemo(() => new Date(), []);
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
   const [activity, setActivity] = useState<Record<string, NodeActivityDay>>({});
-  const [photos, setPhotos] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setPhotos({});
     const start = format(monthCursor, "yyyy-MM-dd");
     const end = format(endOfMonth(monthCursor), "yyyy-MM-dd");
 
     fetchNodeActivity(start, end)
-      .then(async (days) => {
+      .then((days) => {
         if (!active) return;
         const map: Record<string, NodeActivityDay> = {};
         for (const d of days) map[d.date] = d;
         setActivity(map);
         setLoading(false);
-
-        // For each day with logs, pick one random photo (if any image logs exist).
-        const withLogs = days.filter((d) => d.count > 0);
-        const thumbs = await Promise.all(
-          withLogs.map(async (d) => {
-            try {
-              const nodes: NodeData[] = await fetchNodes(d.date);
-              const withImages = nodes.filter((n) => n.image_url || n.image_signed_url);
-              if (withImages.length === 0) return [d.date, null] as const;
-              const pick = withImages[Math.floor(Math.random() * withImages.length)];
-              return [d.date, imageSrc(pick)] as const;
-            } catch {
-              return [d.date, null] as const;
-            }
-          }),
-        );
-        if (!active) return;
-        const pmap: Record<string, string> = {};
-        for (const [date, url] of thumbs) if (url) pmap[date] = url;
-        setPhotos(pmap);
       })
       .catch((err) => {
         console.error("Failed to fetch activity:", err);
@@ -142,7 +122,7 @@ export default function ActivityCalendar() {
           const key = format(day, "yyyy-MM-dd");
           const entry = activity[key];
           const count = entry?.count || 0;
-          const photo = photos[key];
+          const photo = entry?.thumbnail_url;
           const future = isAfter(day, today) && !isSameDay(day, today);
           const empty = count === 0 || future;
           const isToday = isSameDay(day, today);
@@ -162,18 +142,24 @@ export default function ActivityCalendar() {
                 empty ? "cursor-default" : "cursor-pointer transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-hard-sm",
               )}
             >
-              {/* Photo days: a random photo from that day, pinned under the date line */}
-              {photo && (
-                <img
-                  src={photo}
-                  alt=""
-                  loading="lazy"
-                  className="absolute inset-x-1 bottom-1 top-5 h-[calc(100%-24px)] w-[calc(100%-8px)] object-cover"
-                />
-              )}
-              {/* Text-only days: marker ink wash, deeper with more logs */}
-              {!photo && count > 0 && (
+              {/* Marker ink wash, deeper with more logs — always shown behind the photo so log
+                  density stays visible even on days with a thumbnail. */}
+              {count > 0 && (
                 <span aria-hidden className={cn("absolute inset-x-1 bottom-1 top-5", intensityClass(count))} />
+              )}
+              {/* Photo days: a scrapbook-style cutout — uneven corners, a paper-white edge,
+                  a hard ink shadow, and a slight pasted-in tilt — stuck over the wash so a
+                  ring of its color still peeks out around the edges. */}
+              {photo && (
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute inset-x-[6px] bottom-[6px] top-[22px] overflow-hidden rounded-[3px_7px_2px_6px] border-[1.5px] border-paper shadow-hard-sm",
+                    PHOTO_TILTS[day.getDate() % PHOTO_TILTS.length],
+                  )}
+                >
+                  <img src={photo} alt="" loading="lazy" className="h-full w-full object-cover" />
+                </span>
               )}
 
               <span
