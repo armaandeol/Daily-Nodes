@@ -207,7 +207,7 @@ export default function GroupManager({ initialGroup }: { initialGroup?: any }) {
 
   if (loading) {
     return (
-      <div className="bg-card border-2 border-pencil wobbly-md p-4 shadow-hard font-note text-pencil">
+      <div className="mx-auto w-fit max-w-full bg-card border-2 border-pencil wobbly-md p-4 shadow-hard font-note text-pencil">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-900 rounded-full animate-spin"></div>
           <span className="text-sm text-neutral-500">Loading group...</span>
@@ -219,12 +219,12 @@ export default function GroupManager({ initialGroup }: { initialGroup?: any }) {
   if (!group) {
     return (
       <>
-        <section className="border-y border-dashed border-pencil/30 py-2 font-note text-pencil">
+        <section className="mx-auto w-fit max-w-full border-y border-dashed border-pencil/30 py-2 font-note text-pencil">
           <WobblyButton onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} aria-controls="circle-options" className="w-full justify-between border-0 bg-transparent px-0 py-1 shadow-none hover:bg-transparent hover:text-ink">
             <span>👥 Create or join a group</span><span aria-hidden="true">{expanded ? "−" : "+"}</span>
           </WobblyButton>
           <AnimatePresence initial={false}>{expanded && <motion.div id="circle-options" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reduce ? 0 : 0.2 }} className="overflow-hidden">
-            <div className="flex flex-wrap gap-3 pb-2 pt-3">
+            <div className="flex flex-wrap justify-center gap-3 pb-2 pt-3">
               <WobblyButton onClick={() => setIsCreateModalOpen(true)}>+ Create group</WobblyButton>
               <WobblyButton onClick={() => setIsJoinModalOpen(true)}>Join group ↗</WobblyButton>
             </div>
@@ -291,7 +291,7 @@ export default function GroupManager({ initialGroup }: { initialGroup?: any }) {
   return (
     <>
       {/* Compact Group Strip */}
-      <div className="inline-flex w-fit max-w-full items-center gap-3 self-start border-2 border-pencil bg-card px-3 py-1.5 font-note text-pencil shadow-hard-sm wobbly-sm">
+      <div className="mx-auto inline-flex w-fit max-w-full items-center gap-3 border-2 border-pencil bg-card px-3 py-1.5 font-note text-pencil shadow-hard-sm wobbly-sm">
         <span aria-hidden className="text-base">👥</span>
         <span className="truncate font-hand text-lg leading-none">{group.name}</span>
         <span className="whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.15em] text-pencil/60">{members.length} members</span>
