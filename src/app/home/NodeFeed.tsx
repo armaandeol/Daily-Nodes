@@ -323,10 +323,7 @@ export default function HomeFeed({
                   itself no-ops once there's nothing left (hasMore false). */}
               <div ref={sentinelRef} aria-hidden className="h-1 w-full" />
               {loadingMore && (
-                <div className="flex items-center justify-center gap-2 pb-4 pt-2 font-note text-sm text-pencil/50">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-pencil/30 border-t-pencil" />
-                  loading more…
-                </div>
+                <div className="pb-4 pt-6"><GhostFeed /></div>
               )}
             </>
           )}

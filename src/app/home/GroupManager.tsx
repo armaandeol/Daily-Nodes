@@ -1,5 +1,6 @@
 "use client";
 
+import { GhostGroupPill } from "@/components/sketch/PageMotion";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@clerk/nextjs";
@@ -210,12 +211,7 @@ export default function GroupManager({ initialGroup }: { initialGroup?: any }) {
 
   if (loading) {
     return (
-      <div className="mx-auto w-fit max-w-full bg-card border-2 border-pencil wobbly-md p-4 shadow-hard font-note text-pencil">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-900 rounded-full animate-spin"></div>
-          <span className="text-sm text-neutral-500">Loading group...</span>
-        </div>
-      </div>
+      <GhostGroupPill />
     );
   }
 
