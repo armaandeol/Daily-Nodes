@@ -1,5 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import NodeFeed from "./NodeFeed";
 import GroupManager from "./GroupManager";
@@ -59,7 +60,7 @@ export default async function HomePage({
               className="flex h-10 w-10 items-center justify-center overflow-hidden border-2 border-pencil bg-erased shadow-hard-sm transition-transform hover:-rotate-6 wobbly"
             >
               {avatarUrl ? (
-                <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
+                <Image src={avatarUrl} alt="Profile" width={40} height={40} priority className="h-full w-full object-cover" />
               ) : (
                 <span className="font-hand text-sm font-bold">{initials}</span>
               )}

@@ -4,16 +4,20 @@ import { auth } from "@clerk/nextjs/server";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export async function fetchNodes(date?: string) {
+export async function fetchNodes(date?: string, opts?: { limit?: number; offset?: number }) {
   const { getToken } = await auth();
   const token = await getToken();
-  
+
   if (!token) throw new Error("Unauthorized");
 
   const url = new URL(`${API_URL}/nodes/`);
   if (date) {
     url.searchParams.append("date", date);
   }
+  // Backend defaults to limit=20 regardless — pass these explicitly so the
+  // caller can batch-load instead of silently losing anything past 20.
+  if (opts?.limit !== undefined) url.searchParams.append("limit", String(opts.limit));
+  if (opts?.offset !== undefined) url.searchParams.append("offset", String(opts.offset));
 
   const res = await fetch(url.toString(), {
     headers: {

@@ -9,29 +9,36 @@ import {
   checkUsernameAvailability,
   uploadUserAvatar,
 } from "@/app/home/actions";
+import Image from "next/image";
 import ActivityCalendar from "./ActivityCalendar";
 import { Tape, StampLabel, WobblyButton, Scribble } from "@/components/sketch";
-import { PageMotion, GhostPage } from "@/components/sketch/PageMotion";
+import { PageMotion, GhostProfile } from "@/components/sketch/PageMotion";
+import { useCachedFetch, writeCache, peekCache } from "@/lib/client-cache";
 import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
   const { user } = useUser();
   const { signOut } = useClerk();
 
+  // Profile data already fetched this session, if any — read synchronously
+  // so a revisit (e.g. home -> profile -> home -> profile) renders the real
+  // page immediately instead of the ghost, then quietly revalidates.
+  const { data: cachedProfile } = useCachedFetch("profile", fetchUserProfile);
+  const initialCached = peekCache<any>("profile");
+
+  // Original profile to compare changes — seeded from cache when warm.
+  const [initialProfile, setInitialProfile] = useState<any>(() => initialCached || null);
+
   // Profile data state
-  const [displayName, setDisplayName] = useState("");
-  const [username, setUsername] = useState("");
-  const [bio, setBio] = useState("");
-  const [digestSlot, setDigestSlot] = useState<"morning" | "night">("night");
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const [displayName, setDisplayName] = useState(() => initialCached?.display_name || "");
+  const [username, setUsername] = useState(() => initialCached?.username || "");
+  const [bio, setBio] = useState(() => initialCached?.bio || "");
+  const [digestSlot, setDigestSlot] = useState<"morning" | "night">(() => initialCached?.digest_slot || "night");
+  const [avatarUrl, setAvatarUrl] = useState(() => initialCached?.avatar_signed_url || initialCached?.avatar_url || "");
 
   // Loading and helper state
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-
-  // Original profile to compare changes
-  const [initialProfile, setInitialProfile] = useState<any>(null);
 
   // Username validation state
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
@@ -42,28 +49,21 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  // Load profile on mount
+  // Populate fields once the profile is known — either immediately from
+  // cache (synchronous init above already handled that case) or once the
+  // background/initial fetch in useCachedFetch resolves. Guarded by
+  // `initialProfile` so a later silent revalidation never clobbers edits
+  // the user has made in the meantime.
   useEffect(() => {
-    async function loadProfile() {
-      try {
-        const profile = await fetchUserProfile();
-        setInitialProfile(profile);
-        setDisplayName(profile.display_name || user?.fullName || "");
-        setUsername(profile.username || user?.username || "");
-        setBio(profile.bio || "");
-        setDigestSlot(profile.digest_slot || "night");
-        setAvatarUrl(profile.avatar_signed_url || profile.avatar_url || user?.imageUrl || "");
-      } catch (error) {
-        console.error("Error loading profile:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (user) {
-      loadProfile();
-    }
-  }, [user]);
+    if (!cachedProfile || initialProfile) return;
+    const profile = cachedProfile as any;
+    setInitialProfile(profile);
+    setDisplayName(profile.display_name || user?.fullName || "");
+    setUsername(profile.username || user?.username || "");
+    setBio(profile.bio || "");
+    setDigestSlot(profile.digest_slot || "night");
+    setAvatarUrl(profile.avatar_signed_url || profile.avatar_url || user?.imageUrl || "");
+  }, [cachedProfile, initialProfile, user]);
 
   // Track changes dynamically
   useEffect(() => {
@@ -132,6 +132,7 @@ export default function ProfilePage() {
         digest_slot: digestSlot,
       });
       setInitialProfile(updated);
+      writeCache("profile", updated);
       setHasChanges(false);
     } catch (error: any) {
       console.error("Error saving profile:", error);
@@ -162,6 +163,7 @@ export default function ProfilePage() {
       const updated = await uploadUserAvatar(formData);
       setAvatarUrl(updated.avatar_signed_url || updated.avatar_url);
       setInitialProfile(updated);
+      writeCache("profile", updated);
     } catch (error) {
       console.error("Error uploading avatar:", error);
       alert("Failed to upload avatar image");
@@ -170,8 +172,8 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) {
-    return <GhostPage />;
+  if (!initialProfile) {
+    return <GhostProfile />;
   }
 
   const inputClass =
@@ -204,10 +206,13 @@ export default function ProfilePage() {
                 className="group relative h-32 w-32 cursor-pointer overflow-hidden border-2 border-pencil/20 bg-erased"
               >
                 {avatarUrl ? (
-                  <img
+                  <Image
                     src={avatarUrl}
                     alt="Profile"
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    fill
+                    sizes="128px"
+                    priority
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center font-hand text-4xl font-bold text-pencil/40">

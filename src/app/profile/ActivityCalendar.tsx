@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   format,
@@ -15,7 +16,14 @@ import {
   isSameDay,
 } from "date-fns";
 import { fetchNodeActivity, type NodeActivityDay } from "@/app/home/actions";
+import { peekCache, writeCache } from "@/lib/client-cache";
 import { cn } from "@/lib/utils";
+
+function toActivityMap(days: NodeActivityDay[]) {
+  const map: Record<string, NodeActivityDay> = {};
+  for (const d of days) map[d.date] = d;
+  return map;
+}
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -47,24 +55,37 @@ export default function ActivityCalendar() {
   const reduce = useReducedMotion();
   const today = useMemo(() => new Date(), []);
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
-  const [activity, setActivity] = useState<Record<string, NodeActivityDay>>({});
-  const [loading, setLoading] = useState(true);
+  const [activity, setActivity] = useState<Record<string, NodeActivityDay>>(() => {
+    const cached = peekCache<NodeActivityDay[]>(`activity:${format(startOfMonth(new Date()), "yyyy-MM")}`);
+    return cached ? toActivityMap(cached) : {};
+  });
+  const [loading, setLoading] = useState(() => !peekCache(`activity:${format(startOfMonth(new Date()), "yyyy-MM")}`));
 
+  // Cached-by-month, stale-while-revalidate (survives the remount every
+  // navigation does for the page transition animation, see client-cache.ts).
   useEffect(() => {
     let active = true;
-    setLoading(true);
+    const key = `activity:${format(monthCursor, "yyyy-MM")}`;
+    const cached = peekCache<NodeActivityDay[]>(key);
+    if (cached) {
+      setActivity(toActivityMap(cached));
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     const start = format(monthCursor, "yyyy-MM-dd");
     const end = format(endOfMonth(monthCursor), "yyyy-MM-dd");
     fetchNodeActivity(start, end)
       .then((days) => {
         if (!active) return;
-        const map: Record<string, NodeActivityDay> = {};
-        for (const d of days) map[d.date] = d;
-        setActivity(map);
-        setLoading(false);
+        writeCache(key, days);
+        setActivity(toActivityMap(days));
       })
       .catch((err) => {
         console.error("Failed to fetch activity:", err);
+      })
+      .finally(() => {
         if (active) setLoading(false);
       });
     return () => {
@@ -196,12 +217,7 @@ export default function ActivityCalendar() {
                     style={{ clipPath: TORN_EDGES[d % TORN_EDGES.length] }}
                   >
                     <span className="relative block h-full w-full overflow-hidden">
-                      <img
-                        src={photo}
-                        alt=""
-                        loading="lazy"
-                        className="h-full w-full object-cover vintage-photo"
-                      />
+                      <Image src={photo} alt="" fill sizes="60px" className="object-cover vintage-photo" />
                       <span className="pointer-events-none absolute inset-0 paper-noise mix-blend-multiply group-hover:opacity-0 transition-opacity" />
                     </span>
                   </span>

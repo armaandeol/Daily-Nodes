@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { format, addDays, subDays } from "date-fns";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
@@ -8,9 +9,21 @@ import { useAuth } from "@clerk/nextjs";
 import { fetchNodes, reactToNode, fetchUserGroup } from "./actions";
 import { WobblyButton } from "@/components/sketch";
 import { GhostFeed } from "@/components/sketch/PageMotion";
+import { peekCache, writeCache } from "@/lib/client-cache";
 import { PolaroidNode, NoteNode } from "./NodeCards";
-import NodeComposer from "./NodeComposer";
 import { TILTS, type GroupData, type NodeData, type ReactionType } from "./feed-types";
+
+// Composing a log pulls in the photo cropper (react-easy-crop) which isn't
+// needed until someone actually opens it — split it into its own chunk
+// instead of shipping it in Home's initial bundle.
+const NodeComposer = dynamic(() => import("./NodeComposer"));
+
+/** A day's logs are fetched in pages rather than all at once — the backend
+ * caps unpaginated requests at 20 anyway, so without this, any day past 20
+ * logs would silently lose the rest. */
+const PAGE_SIZE = 12;
+
+type DatePage = { nodes: NodeData[]; hasMore: boolean };
 
 /** Parses a "YYYY-MM-DD" string as a local date, avoiding the UTC-midnight
  * shift `new Date("YYYY-MM-DD")` would otherwise introduce. */
@@ -73,9 +86,20 @@ export default function HomeFeed({
   const [direction, setDirection] = useState<1 | -1>(1);
   const [nodes, setNodes] = useState<NodeData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [groupData, setGroupData] = useState<GroupData>(initialGroupData);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const cacheRef = useRef<Record<string, NodeData[]>>({});
+
+  // Mutable mirrors of state the IntersectionObserver callback below reads —
+  // its closure is only rebuilt when `dateStr` changes, so it needs a way to
+  // see the current values without stale closures or extra observer churn.
+  const hasMoreRef = useRef(false);
+  const loadingMoreRef = useRef(false);
+  const nodeCountRef = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  hasMoreRef.current = hasMore;
+  nodeCountRef.current = nodes.length;
 
   // "Now" (or a date passed via ?date=) is only resolved on the client, after
   // mount, so the SSR pass and the first client render agree (avoids a
@@ -94,24 +118,37 @@ export default function HomeFeed({
     fetchUserGroup().then(setGroupData).catch((err) => console.error("Failed to fetch group data:", err));
   }, [isModalOpen]);
 
-  // Load nodes when date changes (stale-while-revalidate)
+  // Load the first page of nodes when date changes (stale-while-revalidate).
+  // Cached by the shared client cache rather than a local ref, so it
+  // survives the remount `template.tsx` does for the page transition on
+  // every navigation away from and back to Home.
   useEffect(() => {
     if (!dateStr) return;
-    const key = dateStr;
+    const date = dateStr;
+    const key = `nodes:${date}`;
     let active = true;
     async function load() {
-      if (cacheRef.current[key]) {
-        setNodes(cacheRef.current[key]);
+      const raw = peekCache<DatePage>(key);
+      const cached = raw && Array.isArray(raw.nodes) ? raw : undefined;
+      // A background revalidate re-requests however many were already
+      // loaded (not just the first page), so scrolling progress on a
+      // revisited day isn't silently rolled back to page one.
+      const limit = Math.max(PAGE_SIZE, cached?.nodes.length ?? 0);
+      if (cached) {
+        setNodes(cached.nodes);
+        setHasMore(cached.hasMore);
         setLoading(false);
       } else {
         setLoading(true);
       }
       try {
-        const data = await fetchNodes(key);
+        const data = await fetchNodes(date, { limit, offset: 0 });
         if (!active) return;
-        if (JSON.stringify(data) !== JSON.stringify(cacheRef.current[key])) {
-          cacheRef.current[key] = data;
-          setNodes(data);
+        if (JSON.stringify(data) !== JSON.stringify(cached?.nodes)) {
+          const page: DatePage = { nodes: data, hasMore: data.length === limit };
+          writeCache(key, page);
+          setNodes(page.nodes);
+          setHasMore(page.hasMore);
         }
       } catch (err) {
         console.error(err);
@@ -125,6 +162,49 @@ export default function HomeFeed({
     };
   }, [dateStr]);
 
+  // Fetches the next page and appends it. Guarded with refs (not state)
+  // because the IntersectionObserver callback's closure is only rebuilt
+  // when `dateStr` changes, so state captured at observer-creation time
+  // would otherwise go stale after the first page loads.
+  const loadMore = async () => {
+    if (!dateStr || loadingMoreRef.current || !hasMoreRef.current) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    const offset = nodeCountRef.current;
+    try {
+      const next = await fetchNodes(dateStr, { limit: PAGE_SIZE, offset });
+      setNodes((prev) => {
+        const merged = [...prev, ...next];
+        writeCache(`nodes:${dateStr}`, { nodes: merged, hasMore: next.length === PAGE_SIZE });
+        return merged;
+      });
+      setHasMore(next.length === PAGE_SIZE);
+    } catch (err) {
+      console.error("Failed to load more logs:", err);
+    } finally {
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+    }
+  };
+
+  // Infinite scroll: load the next page once the sentinel below the grid
+  // comes near the viewport, instead of fetching everything up front.
+  // Re-runs once `loading` flips false too, since the sentinel only exists
+  // in the DOM once the grid itself has rendered.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMore();
+      },
+      { rootMargin: "600px 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateStr, loading]);
+
   const goPrev = () => {
     setDirection(-1);
     setCurrentDate((d) => (d ? subDays(d, 1) : d));
@@ -134,11 +214,15 @@ export default function HomeFeed({
     setCurrentDate((d) => (d ? addDays(d, 1) : d));
   };
 
+  // Re-fetches however many logs were already loaded (not just page one),
+  // so creating a log or reacting doesn't discard scroll-loaded pages.
   const refresh = async () => {
     if (!dateStr) return;
-    const data = await fetchNodes(dateStr);
-    cacheRef.current[dateStr] = data;
+    const limit = Math.max(PAGE_SIZE, nodeCountRef.current);
+    const data = await fetchNodes(dateStr, { limit, offset: 0 });
+    writeCache(`nodes:${dateStr}`, { nodes: data, hasMore: data.length === limit });
     setNodes(data);
+    setHasMore(data.length === limit);
   };
 
   const handleReaction = (nodeId: string, reactionType: ReactionType) => {
@@ -158,7 +242,7 @@ export default function HomeFeed({
       return { ...node, reactions: next };
     });
     setNodes(updated);
-    if (dateStr) cacheRef.current[dateStr] = updated;
+    if (dateStr) writeCache(`nodes:${dateStr}`, { nodes: updated, hasMore });
     reactToNode(nodeId, reactionType)
       .then(refresh)
       .catch((err) => console.error("Failed to sync reaction with backend:", err));
@@ -228,12 +312,23 @@ export default function HomeFeed({
               {isToday && <p className="font-note text-base text-pencil/50">tap the red button to pin your first moment.</p>}
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-x-6 gap-y-10 pt-3 sm:grid-cols-2">
-              {nodes.map((node, i) => {
-                const props = { node, index: i, tilt: TILTS[i % TILTS.length], userId, onReact: handleReaction };
-                return node.image_url ? <PolaroidNode key={node.id} {...props} /> : <NoteNode key={node.id} {...props} />;
-              })}
-            </div>
+            <>
+              <div className="grid grid-cols-1 gap-x-6 gap-y-10 pt-3 sm:grid-cols-2">
+                {nodes.map((node, i) => {
+                  const props = { node, index: i, tilt: TILTS[i % TILTS.length], userId, onReact: handleReaction };
+                  return node.image_url ? <PolaroidNode key={node.id} {...props} /> : <NoteNode key={node.id} {...props} />;
+                })}
+              </div>
+              {/* Fires the next batch fetch once scrolled near; loadMore()
+                  itself no-ops once there's nothing left (hasMore false). */}
+              <div ref={sentinelRef} aria-hidden className="h-1 w-full" />
+              {loadingMore && (
+                <div className="flex items-center justify-center gap-2 pb-4 pt-2 font-note text-sm text-pencil/50">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-pencil/30 border-t-pencil" />
+                  loading more…
+                </div>
+              )}
+            </>
           )}
         </motion.div>
       </AnimatePresence>

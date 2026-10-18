@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { format } from "date-fns";
 import { StampLabel } from "@/components/sketch";
@@ -146,7 +147,7 @@ function Byline({ node }: { node: NodeData }) {
       {node.profiles && (
         <>
           {node.profiles.avatar_url ? (
-            <img src={node.profiles.avatar_url} alt="" className="h-4 w-4 flex-shrink-0 rounded-full border border-pencil object-cover" />
+            <Image src={node.profiles.avatar_url} alt="" width={16} height={16} className="h-4 w-4 flex-shrink-0 rounded-full border border-pencil object-cover" />
           ) : (
             <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border border-pencil bg-erased text-[8px] text-pencil">
               {node.profiles.display_name.charAt(0).toUpperCase()}
@@ -185,7 +186,14 @@ export function PolaroidNode({ node, index, tilt, userId, onReact }: CardProps) 
     <motion.article {...m} className={`group relative flex flex-col p-3 pb-4 ${paper.className}`} style={paper.style}>
       {paper.decor}
       <div className="relative aspect-[4/3] w-full overflow-hidden border-2 border-pencil bg-erased" style={{ borderRadius: "6px 14px 4px 10px" }}>
-        <img src={imageSrc(node)} alt={node.title || "photo log"} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+        <Image
+          src={imageSrc(node)}
+          alt={node.title || "photo log"}
+          fill
+          sizes="(min-width: 640px) 360px, 100vw"
+          priority={index === 0}
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+        />
       </div>
       <div className="flex flex-1 flex-col gap-1 px-1 pt-3">
         <div className="flex items-start justify-between gap-2">

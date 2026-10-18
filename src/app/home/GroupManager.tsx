@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useAuth } from "@clerk/nextjs";
 import { fetchUserGroup, createGroup, regenerateInviteCode, joinGroupByCode, updateGroup, kickGroupMember, leaveGroup } from "./actions";
-import JoinGroupModal from "./JoinGroupModal";
-import GroupSettingsBook from "./GroupSettingsBook";
 import { WobblyButton } from "@/components/sketch";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+
+// Modal-only — split out of Home's initial bundle, fetched when first opened.
+const JoinGroupModal = dynamic(() => import("./JoinGroupModal"));
+const GroupSettingsBook = dynamic(() => import("./GroupSettingsBook"));
 
 type GroupData = {
   id: string;

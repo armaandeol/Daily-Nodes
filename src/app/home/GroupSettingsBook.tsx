@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Tape, StampLabel, Scribble, WobblyButton } from "@/components/sketch";
 import { cn } from "@/lib/utils";
@@ -264,9 +265,11 @@ function MemberAvatar({ m }: { m: Member }) {
   const [errored, setErrored] = useState(false);
   if (m.avatarUrl && !errored) {
     return (
-      <img
+      <Image
         src={m.avatarUrl}
         alt={m.name}
+        width={48}
+        height={48}
         onError={() => setErrored(true)}
         className="h-12 w-12 flex-shrink-0 border-2 border-pencil object-cover"
         style={{ borderRadius: "50% 45% 55% 48% / 52% 48% 50% 46%" }}

@@ -1,5 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { fetchDigestEditions, type DigestPhoto } from "./actions";
@@ -31,9 +32,14 @@ function Polaroid({ photo, tilt = 2 }: { photo: DigestPhoto; tilt?: number }) {
   return (
     <figure className="relative mx-auto max-w-md border-2 border-pencil bg-card p-3 pb-4 shadow-hard transition-transform hover:rotate-0" style={{ rotate: `${tilt}deg` }}>
       <Tape />
-      <div className="aspect-[4/3] w-full overflow-hidden border border-pencil/30 bg-erased">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={photo.url} alt={photo.caption || "Today's front page photo"} className="vintage-photo h-full w-full object-cover" />
+      <div className="relative aspect-[4/3] w-full overflow-hidden border border-pencil/30 bg-erased">
+        <Image
+          src={photo.url}
+          alt={photo.caption || "Today's front page photo"}
+          fill
+          sizes="(min-width: 768px) 448px, 100vw"
+          className="vintage-photo object-cover"
+        />
       </div>
       {photo.caption && <figcaption className="mt-3 text-center font-hand text-lg leading-snug text-pencil">{photo.caption}</figcaption>}
     </figure>
@@ -76,7 +82,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
       <Link href="/profile" aria-label="Profile" className="relative block h-12 w-12 rotate-3 border-2 border-pencil bg-card p-1 shadow-hard-sm">
         <Tape className="!h-3 !w-8 !-top-2" />
         <span className="flex h-full w-full items-center justify-center overflow-hidden bg-erased">
-          {avatarUrl ? <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" /> : <span className="font-hand">{user?.firstName?.[0] || "U"}</span>}
+          {avatarUrl ? <Image src={avatarUrl} alt="Profile" width={48} height={48} className="h-full w-full object-cover" /> : <span className="font-hand">{user?.firstName?.[0] || "U"}</span>}
         </span>
       </Link>
     </nav>

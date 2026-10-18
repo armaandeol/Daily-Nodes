@@ -1,2 +1,2 @@
-import { GhostPage } from "@/components/sketch/PageMotion";
-export default function Loading() { return <GhostPage digest />; }
+import { GhostExplore } from "@/components/sketch/PageMotion";
+export default function Loading() { return <GhostExplore />; }
