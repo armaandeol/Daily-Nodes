@@ -149,7 +149,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                   <Scribble className="mt-2 block h-3 w-48" />
                 </h1>
               )}
-              {digest.tapestry && <p className="font-body text-lg leading-relaxed text-pencil/85 md:text-xl">{digest.tapestry}</p>}
+              {digest.tapestry && <p className="font-note text-lg leading-relaxed text-pencil/85 md:text-xl">{digest.tapestry}</p>}
             </div>
             {digest.photo && (
               <div className="col-span-12 md:col-span-5">
@@ -179,7 +179,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
                 <div className={digest.circle_photo ? "col-span-12 md:col-span-7" : "col-span-12"}>
                   <Stamp>{titles.circle}</Stamp>
                   {digest.circle_headline && <h2 className="mb-4 font-serif text-2xl font-black leading-tight md:text-4xl">{digest.circle_headline}</h2>}
-                  <p className="font-body text-lg leading-relaxed text-pencil/85">{digest.circle ?? "The Circle was quiet today — nothing shared, nothing to report."}</p>
+                  <p className="font-note text-lg leading-relaxed text-pencil/85">{digest.circle ?? "The Circle was quiet today — nothing shared, nothing to report."}</p>
                 </div>
                 {digest.circle_photo && (
                   <div className="col-span-12 md:col-span-5">
