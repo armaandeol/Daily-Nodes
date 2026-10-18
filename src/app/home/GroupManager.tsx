@@ -23,6 +23,7 @@ type Member = {
   email: string;
   joined_at: string;
   role: "admin" | "member";
+  avatarUrl: string | null;
 };
 
 type ActiveTab = "overview" | "members" | "settings";
@@ -54,7 +55,8 @@ export default function GroupManager({ initialGroup }: { initialGroup?: any }) {
         name: m.profiles?.display_name || "Unknown User",
         email: m.profiles?.username ? `@${m.profiles.username}` : "",
         joined_at: m.joined_at,
-        role: m.role === "owner" ? "admin" : "member"
+        role: m.role === "owner" ? "admin" : "member",
+        avatarUrl: m.profiles?.avatar_url || null
       }));
     }
     return [];
@@ -84,7 +86,8 @@ export default function GroupManager({ initialGroup }: { initialGroup?: any }) {
           name: m.profiles?.display_name || "Unknown User",
           email: m.profiles?.username ? `@${m.profiles.username}` : "",
           joined_at: m.joined_at,
-          role: m.role === "owner" ? "admin" : "member"
+          role: m.role === "owner" ? "admin" : "member",
+          avatarUrl: m.profiles?.avatar_url || null
         }));
         setMembers(mappedMembers);
       } else {

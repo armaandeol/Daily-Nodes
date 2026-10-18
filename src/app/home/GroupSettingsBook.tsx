@@ -6,7 +6,7 @@ import { Tape, StampLabel, Scribble, WobblyButton } from "@/components/sketch";
 import { cn } from "@/lib/utils";
 
 export type BookTab = "overview" | "members" | "settings";
-type Member = { id: string; name: string; email: string; role: "admin" | "member" };
+type Member = { id: string; name: string; email: string; role: "admin" | "member"; avatarUrl: string | null };
 type Group = { id: string; name: string; invite_code: string; invite_link: string; created_at: string };
 
 const TABS: { id: BookTab; label: string; tone: string }[] = [
@@ -70,9 +70,9 @@ export default function GroupSettingsBook(p: Props) {
   const flip = reduce
     ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
     : {
-        initial: { rotateY: dir > 0 ? 70 : -70, opacity: 0 },
-        animate: { rotateY: 0, opacity: 1 },
-        exit: { rotateY: dir > 0 ? -80 : 80, opacity: 0 },
+        initial: { x: dir > 0 ? 16 : -16, opacity: 0 },
+        animate: { x: 0, opacity: 1 },
+        exit: { x: dir > 0 ? -16 : 16, opacity: 0 },
       };
 
   return (
@@ -136,7 +136,7 @@ export default function GroupSettingsBook(p: Props) {
                 </button>
               </div>
 
-              <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-6 pl-10 pr-5 pt-3" style={{ perspective: 1400 }}>
+              <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-6 pl-10 pr-5 pt-3">
                 {p.error && (
                   <div className="mb-4 inline-block -rotate-1 border-2 border-marker bg-postit px-3 py-2 font-note text-sm text-marker shadow-hard-sm">
                     ✎ {p.error}
@@ -146,8 +146,7 @@ export default function GroupSettingsBook(p: Props) {
                   <motion.div
                     key={p.tab}
                     {...flip}
-                    transition={{ duration: reduce ? 0.15 : 0.45, ease: [0.4, 0, 0.2, 1] }}
-                    style={{ transformOrigin: "left center", transformStyle: "preserve-3d" }}
+                    transition={{ duration: reduce ? 0.15 : 0.22, ease: [0.4, 0, 0.2, 1] }}
                   >
                     {p.tab === "overview" && <Overview {...p} copied={copied} copy={copy} />}
                     {p.tab === "members" && <Members {...p} />}
@@ -261,6 +260,26 @@ function Overview(p: Props & { copied: string | null; copy: (k: string, v: strin
   );
 }
 
+function MemberAvatar({ m }: { m: Member }) {
+  const [errored, setErrored] = useState(false);
+  if (m.avatarUrl && !errored) {
+    return (
+      <img
+        src={m.avatarUrl}
+        alt={m.name}
+        onError={() => setErrored(true)}
+        className="h-12 w-12 flex-shrink-0 border-2 border-pencil object-cover"
+        style={{ borderRadius: "50% 45% 55% 48% / 52% 48% 50% 46%" }}
+      />
+    );
+  }
+  return (
+    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-2 border-pencil bg-postit font-serif text-xl font-black text-pencil" style={{ borderRadius: "50% 45% 55% 48% / 52% 48% 50% 46%" }}>
+      {m.name.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
 function Members(p: Props) {
   const reduce = useReducedMotion();
   return (
@@ -278,9 +297,7 @@ function Members(p: Props) {
             className="relative flex items-center gap-3 border-2 border-pencil bg-card p-3 shadow-hard-sm"
           >
             <Tape className="-top-3 h-5 w-12" rotate={i % 2 ? 5 : -5} />
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-2 border-pencil bg-postit font-serif text-xl font-black text-pencil" style={{ borderRadius: "50% 45% 55% 48% / 52% 48% 50% 46%" }}>
-              {m.name.charAt(0).toUpperCase()}
-            </div>
+            <MemberAvatar m={m} />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="truncate font-note text-lg text-pencil">{m.name}</span>
