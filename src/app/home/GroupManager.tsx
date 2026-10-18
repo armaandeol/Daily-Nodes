@@ -290,25 +290,17 @@ export default function GroupManager({ initialGroup }: { initialGroup?: any }) {
 
   return (
     <>
-      {/* Compact Group Card */}
-      <div className="bg-card border-2 border-pencil wobbly-md p-4 shadow-hard font-note text-pencil">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0">
-              <span className="text-base">👥</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-neutral-900 truncate">{group.name}</h3>
-              <p className="text-xs text-neutral-500">{members.length} members</p>
-            </div>
-          </div>
-          <button
-            onClick={() => { setError(""); setIsManageModalOpen(true); }}
-            className="px-3 py-1.5 bg-neutral-900 text-white text-xs font-medium rounded-md hover:bg-neutral-800 transition-colors flex-shrink-0"
-          >
-            Manage
-          </button>
-        </div>
+      {/* Compact Group Strip */}
+      <div className="inline-flex w-fit max-w-full items-center gap-3 self-start border-2 border-pencil bg-card px-3 py-1.5 font-note text-pencil shadow-hard-sm wobbly-sm">
+        <span aria-hidden className="text-base">👥</span>
+        <span className="truncate font-hand text-lg leading-none">{group.name}</span>
+        <span className="whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.15em] text-pencil/60">{members.length} members</span>
+        <button
+          onClick={() => { setError(""); setIsManageModalOpen(true); }}
+          className="whitespace-nowrap border-2 border-pencil bg-postit px-2 py-0.5 font-hand text-sm text-pencil wobbly-sm transition-transform hover:-rotate-2"
+        >
+          manage →
+        </button>
       </div>
 
       <GroupSettingsBook

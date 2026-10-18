@@ -3,11 +3,12 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { format } from "date-fns";
-import { StampLabel, Tape, Tack } from "@/components/sketch";
+import { StampLabel } from "@/components/sketch";
+import { CategoryStamp, paperProps } from "./LogPaper";
 import {
   REACTION_EMOJIS,
-  categoryOf,
   imageSrc,
+  logStyleOf,
   type NodeData,
   type ReactionType,
 } from "./feed-types";
@@ -176,62 +177,52 @@ function useCardMotion(index: number, tilt: number) {
   };
 }
 
-/** Photo log: polaroid frame, photo fully visible, words in the bottom margin. */
+/** Photo log: photo fully visible, category stamp on the frame, words below. */
 export function PolaroidNode({ node, index, tilt, userId, onReact }: CardProps) {
   const m = useCardMotion(index, tilt);
-  const cat = categoryOf(node.type);
-  const [headline, ...rest] = (node.content || node.title || "").split("\n");
+  const paper = paperProps(logStyleOf(node.style), true);
   return (
-    <motion.article {...m} className="group relative flex flex-col border-2 border-pencil bg-card p-3 pb-4 shadow-hard wobbly-md">
-      <Tape rotate={index % 2 ? 5 : -5} />
+    <motion.article {...m} className={`group relative flex flex-col p-3 pb-4 ${paper.className}`} style={paper.style}>
+      {paper.decor}
       <div className="relative aspect-[4/3] w-full overflow-hidden border-2 border-pencil bg-erased" style={{ borderRadius: "6px 14px 4px 10px" }}>
-        <img src={imageSrc(node)} alt={headline || "photo log"} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-        <div className="absolute left-2 top-2 flex gap-1">
-          <StampLabel className="bg-card/90">◉ photo</StampLabel>
-        </div>
+        <img src={imageSrc(node)} alt={node.title || "photo log"} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
       </div>
       <div className="flex flex-1 flex-col gap-1 px-1 pt-3">
-        <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-pencil/60">
-            {cat.icon} {cat.label}
-          </span>
-          {node.visibility === "shared" && <StampLabel tone="ink">shared</StampLabel>}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            {node.title && <p className="font-hand text-xl leading-snug text-pencil">{node.title}</p>}
+            {node.content && <p className="whitespace-pre-line font-note text-base leading-snug text-pencil/75">{node.content}</p>}
+          </div>
+          <CategoryStamp type={node.type} tilt={index % 2 ? 6 : -6} />
         </div>
-        {headline && <p className="font-hand text-xl leading-snug text-pencil">{headline}</p>}
-        {rest.length > 0 && <p className="whitespace-pre-line font-note text-base leading-snug text-pencil/75">{rest.join("\n")}</p>}
         <div className="mt-auto flex items-end justify-between gap-2 pt-2">
           <Byline node={node} />
-          {node.visibility === "shared" && <ReactionBar node={node} userId={userId} onReact={onReact} />}
+          <div className="flex items-center gap-2">
+            {node.visibility === "shared" && <StampLabel tone="ink">shared</StampLabel>}
+            {node.visibility === "shared" && <ReactionBar node={node} userId={userId} onReact={onReact} />}
+          </div>
         </div>
       </div>
     </motion.article>
   );
 }
 
-/** Text log: post-it note with a red margin line and a big serif heading. */
+/** Text log in the chosen paper style with a big serif heading. */
 export function NoteNode({ node, index, tilt, userId, onReact }: CardProps) {
   const m = useCardMotion(index, tilt);
-  const cat = categoryOf(node.type);
-  const lined = index % 2 === 1;
+  const paper = paperProps(logStyleOf(node.style), false);
   return (
     <motion.article
       {...m}
-      className={`group relative flex min-h-[200px] flex-col border-2 border-pencil p-5 pl-9 shadow-hard wobbly-md ${lined ? "bg-card" : "bg-postit"}`}
-      style={
-        lined
-          ? { backgroundImage: "repeating-linear-gradient(transparent 0 27px, color-mix(in oklab, var(--ink) 18%, transparent) 27px 28px)" }
-          : undefined
-      }
+      className={`group relative flex min-h-[200px] flex-col p-5 ${paper.margin ? "pl-9" : ""} ${paper.className}`}
+      style={paper.style}
     >
-      <Tack />
-      <span aria-hidden className="absolute bottom-3 left-6 top-3 w-[2px] bg-marker/60" />
-      <div className="flex items-center justify-between gap-2">
-        <StampLabel tone="marker">✎ note</StampLabel>
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-pencil/60">
-          {cat.icon} {cat.label}
-        </span>
+      {paper.decor}
+      {paper.margin && <span aria-hidden className="absolute bottom-3 left-6 top-3 w-[2px] bg-marker/60" />}
+      <div className="flex items-start justify-between gap-3">
+        {node.title && <h3 className="mt-1 font-serif text-2xl font-black leading-tight text-pencil">{node.title}</h3>}
+        <CategoryStamp type={node.type} tilt={index % 2 ? 7 : -7} className="ml-auto" />
       </div>
-      {node.title && <h3 className="mt-3 font-serif text-2xl font-black leading-tight text-pencil">{node.title}</h3>}
       {node.content && <p className="mt-2 whitespace-pre-line font-note text-lg leading-7 text-pencil/80">{node.content}</p>}
       <div className="mt-auto flex items-end justify-between gap-2 pt-4">
         <Byline node={node} />

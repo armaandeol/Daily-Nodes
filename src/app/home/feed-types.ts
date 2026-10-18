@@ -7,6 +7,8 @@ export type NodeData = {
   image_signed_url?: string | null;
   logged_at: string;
   visibility: string;
+  /** Visual style chosen when the log was created (see LOG_STYLES). */
+  style?: string | null;
   profiles?: {
     display_name: string;
     avatar_url: string | null;
@@ -51,13 +53,24 @@ export function imageSrc(node: Pick<NodeData, "image_signed_url" | "image_url">)
   return node.image_signed_url || `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/${node.image_url}`;
 }
 
-/**
- * When a photo is attached, the heading moves into the description so it is
- * never lost or hidden behind the image.
- */
-export function mergeHeadingIntoDescription(title: string, description: string) {
-  const t = title.trim();
-  if (!t) return description;
-  const d = description.trim();
-  return d ? `${t}\n${d}` : t;
-}
+export type StampShape = "rect" | "round" | "pill";
+/** Each category has one fixed rubber-stamp shape and ink, so they read apart at a glance. */
+export const CATEGORY_STAMPS: Record<string, { shape: StampShape; ink: string }> = {
+  study: { shape: "rect", ink: "var(--ink)" },
+  custom: { shape: "round", ink: "var(--marker)" },
+  mood: { shape: "pill", ink: "#4f7a4a" },
+  workout: { shape: "rect", ink: "#c2662d" },
+  food: { shape: "pill", ink: "#8a5a2b" },
+  social: { shape: "round", ink: "#6b4f8a" },
+};
+export const stampOf = (id: string) => CATEGORY_STAMPS[id] ?? { shape: "pill" as StampShape, ink: "var(--pencil)" };
+
+export type LogStyleId = "postit" | "lined" | "index" | "scrap";
+export const LOG_STYLES: { id: LogStyleId; label: string }[] = [
+  { id: "postit", label: "Post-it" },
+  { id: "lined", label: "Lined paper" },
+  { id: "index", label: "Index card" },
+  { id: "scrap", label: "Torn scrap" },
+];
+export const logStyleOf = (id?: string | null): LogStyleId =>
+  (LOG_STYLES.find((s) => s.id === id)?.id ?? "postit");

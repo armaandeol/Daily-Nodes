@@ -1,6 +1,11 @@
 // @ts-nocheck -- run with `bun test`
 import { expect, test } from "bun:test";
-import { mergeHeadingIntoDescription } from "../feed-types";
-test("heading moves into empty description", () => expect(mergeHeadingIntoDescription("Run", "")).toBe("Run"));
-test("heading goes in front of existing description", () => expect(mergeHeadingIntoDescription("Run", "5km")).toBe("Run\n5km"));
-test("empty heading leaves description alone", () => expect(mergeHeadingIntoDescription("  ", "5km")).toBe("5km"));
+import { logStyleOf, stampOf } from "../feed-types";
+test("unknown or missing log style falls back to post-it", () => {
+  expect(logStyleOf(undefined)).toBe("postit");
+  expect(logStyleOf("nope")).toBe("postit");
+});
+test("chosen log style is kept", () => expect(logStyleOf("scrap")).toBe("scrap"));
+test("study, custom and mood stamps differ in shape", () => {
+  expect(new Set([stampOf("study").shape, stampOf("custom").shape, stampOf("mood").shape]).size).toBe(3);
+});

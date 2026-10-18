@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { StampLabel, Tape, Tack, WobblyButton } from "@/components/sketch";
+import { Tape, WobblyButton } from "@/components/sketch";
+import { CategoryStamp, paperProps } from "./LogPaper";
 import { createNode } from "./actions";
-import { CATEGORIES, categoryOf, mergeHeadingIntoDescription, type GroupData } from "./feed-types";
+import { CATEGORIES, LOG_STYLES, type GroupData, type LogStyleId } from "./feed-types";
 import PhotoCropEditor from "./PhotoCropEditor";
 
 const inputCls =
@@ -28,7 +29,7 @@ export default function NodeComposer({
   const [visibility, setVisibility] = useState<"solo" | "shared">("solo");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [movedNote, setMovedNote] = useState(false);
+  const [logStyle, setLogStyle] = useState<LogStyleId>("postit");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -69,7 +70,7 @@ export default function NodeComposer({
     setImageFile(null);
     setCropFile(null);
     setOriginalPhoto(null);
-    setMovedNote(false);
+    setLogStyle("postit");
     setError(null);
     setShowHelp(false);
     onClose();
@@ -77,13 +78,6 @@ export default function NodeComposer({
 
   function handleImage(file: File | null) {
     setImageFile(file);
-    if (file && title.trim()) {
-      setContent((c) => mergeHeadingIntoDescription(title, c));
-      setTitle("");
-      setMovedNote(true);
-    } else {
-      setMovedNote(false);
-    }
   }
 
   function selectPhoto(file: File | null) {
@@ -108,14 +102,10 @@ export default function NodeComposer({
     const fd = new FormData();
     fd.set("type", type);
     fd.set("visibility", visibility);
-    if (imageFile) {
-      fd.set("image", imageFile);
-      const merged = mergeHeadingIntoDescription(title, content);
-      if (merged.trim()) fd.set("content", merged);
-    } else {
-      fd.set("title", title.trim());
-      if (content.trim()) fd.set("content", content);
-    }
+    fd.set("style", logStyle);
+    if (imageFile) fd.set("image", imageFile);
+    if (title.trim()) fd.set("title", title.trim());
+    if (content.trim()) fd.set("content", content);
     try {
       await createNode(fd);
       await onCreated();
@@ -128,8 +118,7 @@ export default function NodeComposer({
     }
   }
 
-  const cat = categoryOf(type);
-  const previewLines = mergeHeadingIntoDescription(title, content).split("\n");
+  const paper = paperProps(logStyle, !!preview);
 
   return (
     <AnimatePresence>
@@ -189,7 +178,7 @@ export default function NodeComposer({
                   >
                     <div className="border-2 border-dashed border-pencil bg-postit p-3 font-note text-base text-pencil wobbly-sm">
                       <p>✎ <b>Notes</b> need a heading.</p>
-                      <p>◉ <b>Photos</b> keep the image clean. Any heading you wrote moves into the description.</p>
+                      <p>◉ <b>Photos</b> keep the image clean. Your heading sits right under the photo.</p>
                     </div>
                   </motion.div>
                 )}
@@ -202,26 +191,11 @@ export default function NodeComposer({
                 <input
                   className={inputCls}
                   value={title}
-                  onChange={(e) => {
-                    setTitle(e.target.value);
-                    setMovedNote(false);
-                  }}
+                  onChange={(e) => setTitle(e.target.value)}
                   placeholder={imageFile ? "optional — goes under the photo" : "what happened?"}
                 />
               </label>
 
-              <AnimatePresence>
-                {movedNote && (
-                  <motion.p
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="-mt-2 font-note text-sm text-ink"
-                  >
-                    ↓ moved your heading into the description
-                  </motion.p>
-                )}
-              </AnimatePresence>
 
               <div className="flex flex-col gap-1.5">
                 <span className="font-hand text-base text-pencil">category</span>
@@ -239,6 +213,27 @@ export default function NodeComposer({
                       {c.icon} {c.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <span className="font-hand text-base text-pencil">paper style</span>
+                <div className="grid grid-cols-4 gap-2">
+                  {LOG_STYLES.map((st) => {
+                    const sw = paperProps(st.id, false);
+                    return (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => setLogStyle(st.id)}
+                        aria-pressed={logStyle === st.id}
+                        className={`flex flex-col items-center gap-1 rounded-md p-1 font-note text-sm text-pencil transition-transform ${logStyle === st.id ? "-rotate-2 scale-105 outline outline-2 outline-offset-2 outline-marker" : "hover:-rotate-1"}`}
+                      >
+                        <span className={`block h-10 w-full ${sw.className}`} style={{ ...sw.style, boxShadow: undefined }} />
+                        {st.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -314,54 +309,41 @@ export default function NodeComposer({
               <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-pencil/60">live preview</span>
               <div className="flex flex-1 items-start justify-center pt-4">
                 <AnimatePresence mode="wait">
-                  {preview ? (
-                    <motion.div
-                      key="polaroid"
-                      initial={{ opacity: 0, rotate: 6, y: 10 }}
-                      animate={{ opacity: 1, rotate: 1.5, y: 0 }}
-                      exit={{ opacity: 0, rotate: -6 }}
-                      className="relative w-full max-w-[320px] border-2 border-pencil bg-card p-3 pb-4 shadow-hard wobbly-md"
-                    >
-                      <Tape />
-                      <div className="aspect-[4/3] overflow-hidden border-2 border-pencil">
-                        <img src={preview} alt="preview" className="h-full w-full object-cover" />
-                      </div>
-                      <div className="px-1 pt-3">
-                        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-pencil/60">
-                          {cat.icon} {cat.label}
-                        </span>
-                        {previewLines[0] ? (
-                          <p className="font-hand text-xl text-pencil">{previewLines[0]}</p>
-                        ) : (
-                          <p className="font-hand text-xl text-pencil/30">your caption…</p>
-                        )}
-                        {previewLines.length > 1 && (
-                          <p className="whitespace-pre-line font-note text-base text-pencil/75">{previewLines.slice(1).join("\n")}</p>
-                        )}
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="note"
-                      initial={{ opacity: 0, rotate: -6, y: 10 }}
-                      animate={{ opacity: 1, rotate: -1.5, y: 0 }}
-                      exit={{ opacity: 0, rotate: 6 }}
-                      className="relative min-h-[220px] w-full max-w-[320px] border-2 border-pencil bg-postit p-5 pl-9 shadow-hard wobbly-md"
-                    >
-                      <Tack />
-                      <span aria-hidden className="absolute bottom-3 left-6 top-3 w-[2px] bg-marker/60" />
-                      <div className="flex items-center justify-between">
-                        <StampLabel tone="marker">✎ note</StampLabel>
-                        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-pencil/60">
-                          {cat.icon} {cat.label}
-                        </span>
-                      </div>
-                      <h3 className={`mt-3 font-serif text-2xl font-black leading-tight ${title ? "text-pencil" : "text-pencil/25"}`}>
-                        {title || "your heading"}
-                      </h3>
-                      {content && <p className="mt-2 whitespace-pre-line font-note text-lg leading-7 text-pencil/80">{content}</p>}
-                    </motion.div>
-                  )}
+                  <motion.div
+                    key={`${preview ? "photo" : "note"}-${logStyle}`}
+                    initial={{ opacity: 0, rotate: preview ? 6 : -6, y: 10 }}
+                    animate={{ opacity: 1, rotate: preview ? 1.5 : -1.5, y: 0 }}
+                    exit={{ opacity: 0, rotate: preview ? -6 : 6 }}
+                    className={`relative w-full max-w-[320px] ${preview ? "p-3 pb-4" : `min-h-[220px] p-5 ${paper.margin ? "pl-9" : ""}`} ${paper.className}`}
+                    style={paper.style}
+                  >
+                    {paper.decor}
+                    {preview ? (
+                      <>
+                        <div className="aspect-[4/3] overflow-hidden border-2 border-pencil">
+                          <img src={preview} alt="preview" className="h-full w-full object-cover" />
+                        </div>
+                        <div className="flex items-start justify-between gap-2 px-1 pt-3">
+                          <div className="min-w-0">
+                            <p className={`font-hand text-xl ${title ? "text-pencil" : "text-pencil/30"}`}>{title || "your caption…"}</p>
+                            {content && <p className="whitespace-pre-line font-note text-base text-pencil/75">{content}</p>}
+                          </div>
+                          <CategoryStamp type={type} />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {paper.margin && <span aria-hidden className="absolute bottom-3 left-6 top-3 w-[2px] bg-marker/60" />}
+                        <div className="flex items-start justify-between gap-3">
+                          <h3 className={`mt-1 font-serif text-2xl font-black leading-tight ${title ? "text-pencil" : "text-pencil/25"}`}>
+                            {title || "your heading"}
+                          </h3>
+                          <CategoryStamp type={type} className="ml-auto" />
+                        </div>
+                        {content && <p className="mt-2 whitespace-pre-line font-note text-lg leading-7 text-pencil/80">{content}</p>}
+                      </>
+                    )}
+                  </motion.div>
                 </AnimatePresence>
               </div>
             </div>
