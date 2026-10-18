@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { WobblyButton } from "@/components/sketch";
+import { Tape, WobblyButton } from "@/components/sketch";
 import { CategoryStamp, paperProps } from "./LogPaper";
 import { createNode } from "./actions";
 import { CATEGORIES, LOG_STYLES, type GroupData, type LogStyleId } from "./feed-types";
